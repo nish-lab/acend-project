@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project: Ascend</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700;900&family=Cormorant+Garamond:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Universal Notification Popup -->
+    <div id="page-universal-popup" class="page p-4">
+        <div class="notification-wrapper w-full max-w-lg">
+            <div id="popup-box" class="notification-box">
+                <div class="corner top-left"></div><div class="corner top-right"></div>
+                <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
+                <div class="crest"></div>
+                <div id="universal-popup-content" class="notification-box-content text-center"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 0: Login/Signup -->
+    <div id="page-login" class="page active">
+        <div class="notification-box w-full max-w-sm">
+            <div class="crest"></div>
+            <div id="login-form">
+                <h2 class="font-garamond text-2xl text-glow-subtle mb-6 text-center">Player Login</h2>
+                <div class="space-y-4">
+                    <div><label for="login-email" class="block mb-1 text-sm">Email</label><input type="email" id="login-email" class="form-input w-full p-2 rounded-sm" placeholder="player@email.com"></div>
+                    <div><label for="login-password" class="block mb-1 text-sm">Password</label><input type="password" id="login-password" class="form-input w-full p-2 rounded-sm" placeholder="••••••••"></div>
+                </div>
+                <button id="login-button" class="btn-system w-full font-bold py-2 mt-6 rounded-sm text-lg">Login</button>
+                <p class="text-center mt-4 text-sm">Don't have an account? <a href="#" id="show-signup" class="text-glow-subtle hover:underline">Sign Up</a></p>
+            </div>
+            <div id="signup-form" class="hidden">
+                 <h2 class="font-garamond text-2xl text-glow-subtle mb-6 text-center">Create Account</h2>
+                <div class="space-y-4">
+                    <div><label for="signup-email" class="block mb-1 text-sm">Email</label><input type="email" id="signup-email" class="form-input w-full p-2 rounded-sm" placeholder="player@email.com"></div>
+                    <div><label for="signup-password" class="block mb-1 text-sm">Password</label><input type="password" id="signup-password" class="form-input w-full p-2 rounded-sm" placeholder="••••••••"></div>
+                </div>
+                <button id="signup-button" class="btn-system w-full font-bold py-2 mt-6 rounded-sm text-lg">Sign Up</button>
+                <p class="text-center mt-4 text-sm">Already have an account? <a href="#" id="show-login" class="text-glow-subtle hover:underline">Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 2: Onboarding Questionnaire -->
+    <div id="page-onboarding" class="page p-4">
+        <div class="notification-box w-full max-w-lg mx-auto h-auto max-h-[90vh] flex flex-col">
+             <div class="crest"></div>
+             <div class="flex-grow overflow-y-auto pr-2" id="onboarding-content"></div>
+             <div class="flex-shrink-0 pt-4">
+                <button id="next-button" class="btn-system w-full font-bold py-3 px-10 rounded-sm text-lg">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container (Dashboard, Shop, etc.) -->
+    <div id="page-app" class="page flex-col justify-between">
+        <div class="page-content overflow-y-auto">
+             <!-- App screens will be injected here -->
+        </div>
+        <div class="w-full max-w-lg mx-auto p-2 flex-shrink-0">
+             <div class="box-bg rounded-full flex justify-around items-center p-3 text-gray-400">
+                <a href="#quests" class="nav-item text-center"><i class="fa-solid fa-shield-halved text-2xl"></i><span class="text-xs block">Quests</span></a>
+                <a href="#inventory" class="nav-item text-center"><i class="fa-solid fa-box-archive text-2xl"></i><span class="text-xs block">Inventory</span></a>
+                <a href="#profile" class="nav-item active text-center"><i class="fa-solid fa-user text-2xl"></i><span class="text-xs block">Profile</span></a>
+                <a href="#shop" class="nav-item text-center"><i class="fa-solid fa-store text-2xl"></i><span class="text-xs block">Shop</span></a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/script.js" defer></script>
+</body>
+</html>
