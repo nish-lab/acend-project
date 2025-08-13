@@ -1,95 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Solo Leveling Guild App</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
-    /* Glowing background */
-    body {
-        margin: 0;
-        height: 100vh;
-        font-family: Arial, sans-serif;
-        background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgb(15, 30, 59) 100%);
-        color: white;
-        overflow: hidden;
-        animation: bgPulse 0s infinite alternate;
-    }
+  /* ===== Shared background ===== */
+  body {
+    margin: 0;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+    background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgb(15,30,59) 100%);
+    animation: bgPulse 6s ease-in-out infinite alternate;
+  }
+  @keyframes bgPulse {
+    0%   { background: radial-gradient(circle at center, rgba(18,28,48,1) 0%, rgba(10,20,38,1) 100%); }
+    100% { background: radial-gradient(circle at center, rgba(32,54,92,1) 0%, rgba(5,10,20,1) 100%); }
+  }
 
-    @keyframes bgPulse {
-        0% { background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgb(20,30,50,1) 100%); }
-        100% { background: radial-gradient(circle at center, rgba(30,50,80,1) 0%, rgb(5,10,20,1) 100%); }
-    }
-/*5,10,20,1*/
-    /* Loading screen */
-    #loading-screen {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        z-index: 9999;
-    }
+  /* ===== Generic screen handling (UPDATED) ===== */
+  .screen {
+    position: fixed;
+    inset: 0;
+    /* CHANGED: Always use flex for layout */
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 400ms ease, transform 400ms ease;
+    /* NEW: Prevent interaction with invisible screens */
+    pointer-events: none; 
+  }
+  .screen.active {
+    opacity: 1;
+    transform: translateY(0);
+    /* NEW: Allow interaction ONLY with the active screen */
+    pointer-events: auto; 
+  }
 
-    /* Guild icons container */
-    .icon-container {
-        display: flex;
-        gap: 0px;
-    }
+  /* ===== Loading Screen ===== */
+  #loading-screen {
+    z-index: 9999;
+  }
+  .icon-container {
+    display: flex;
+    gap: 0px;
+  }
+  .guild-icon {
+    width: 50px;
+    height: 50px;
+    animation: iconGlow 1.5s infinite alternate;
+    filter: drop-shadow(0 0 20px #00f0ff);
+    margin: 0 10px;
+  }
+  @keyframes iconGlow {
+    from { filter: drop-shadow(0 0 5px #00f0ff) brightness(1); }
+    to   { filter: drop-shadow(0 0 24px #00f0ff) brightness(1.35); }
+  }
 
-    /* Guild icons */
-    .guild-icon {
-        width: 50px;
-        height: 50px;
-        animation: iconGlow 1.5s infinite alternate;
-        filter: drop-shadow(0 0 20px #00f0ff);
-    }
+  /* ===== Intro screen ===== */
+  #intro-screen .daggers {
+    position: relative;
+    width: 160px; height: 160px;
+    display: grid; place-items: center;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 0 18px rgba(0, 240, 255, 0.75));
+    animation: daggersPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes daggersPulse {
+    0%   { transform: scale(0.98); filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.55)); }
+    50%  { transform: scale(1.03); filter: drop-shadow(0 0 22px rgba(0, 240, 255, 0.95)); }
+    100% { transform: scale(0.98); filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.55)); }
+  }
+  .daggers img {
+    position: absolute;
+    width: 150%;
+    height: 150%;
+    object-fit: contain;
+    opacity: 0.95;
+  }
+  .daggers img:first-child {
+    transform: rotate(8deg) translate(-6px, -6px) scaleX(-1);
+  }
+  .daggers img:last-child {
+    transform: rotate(-8deg) translate(6px, -6px);
+  }
+  #intro-screen h1 {
+    margin: 10px 0 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 8px rgba(0, 230, 255, 0.6);
+  }
+  #intro-screen p {
+    margin: 0 0 25px;
+    opacity: 0.9;
+  }
+  .btn {
+    padding: 12px 22px;
+    border: 1px solid rgba(0, 200, 255, 0.65);
+    background: rgba(0, 30, 60, 0.6);
+    color: #cfefff;
+    border-radius: 6px;
+    cursor: pointer;
+    backdrop-filter: blur(2px);
+    transition: transform 120ms ease, box-shadow 200ms ease, background 200ms ease;
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+    background: rgba(0, 45, 85, 0.75);
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.55);
+  }
 
-    @keyframes iconGlow {
-        from { filter: drop-shadow(0 0 5px #00f0ff) brightness(1); }
-        to { filter: drop-shadow(0 0 20px #00f0ff) brightness(1.3); }
-    }
+  /* ===== Login screen ===== */
+  #login-screen .card {
+    width: 92%;
+    max-width: 360px;
+    padding: 22px 20px;
+    border: 1px solid rgba(120,170,210,0.35);
+    background: rgba(0, 15, 30, 0.55);
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(120,170,210,0.12);
+    backdrop-filter: blur(6px);
+  }
+  .card h2 {
+    margin: 0 0 16px;
+    text-align: center;
+    font-size: 22px;
+    text-shadow: 0 0 8px rgba(120,170,210,0.6);
+  }
+  .field {
+    display: grid; gap: 6px; margin: 10px 0 14px;
+  }
+  .field label {
+    font-size: 13px; opacity: 0.9;
+  }
+  .field input {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(120,170,210,0.35);
+    background: rgba(0, 0, 0, 0.35);
+    color: #eaf6ff;
+    outline: none;
+  }
+  .field input:focus {
+    box-shadow: 0 0 12px rgba(0, 200, 255, 0.35);
+  }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px;
+  }
+  .link {
+    font-size: 13px; color: #9ddcff; text-decoration: none;
+  }
+  .link:hover { text-decoration: underline; }
 
-    /* Main content hidden until loading finishes */
-    #main-content {
-        display: none;
-        padding: 10px;
-        text-align: center;
-    }
+  /* ===== Faders ===== */
+  .fade-stagger {
+    opacity: 0;
+    animation: fadeIn 600ms ease forwards;
+  }
+  .fade-1 { animation-delay: 0ms; }
+  .fade-2 { animation-delay: 150ms; }
+  .fade-3 { animation-delay: 300ms; }
+  .fade-4 { animation-delay: 450ms; }
+  .fade-5 { animation-delay: 600ms; }
+  @keyframes fadeIn { to { opacity: 1; } }
 </style>
 </head>
 <body>
 
-<!-- Loading Screen -->
-<div id="loading-screen">
-    <div class="icon-container">
-        <i class="fas fa-helmet-battle guild-icon"></i>
-        <i class="fas fa-dragon guild-icon"></i>
-        <i class="fas fa-shield-halved guild-icon"></i>
-        <i class="fas fa-crown guild-icon"></i>
-        <i class="fas fa-staff-snake guild-icon"></i>
-    </div>
+<div id="loading-screen" class="screen active">
+  <div class="icon-container">
+    <i class="fas fa-helmet-safety guild-icon fade-stagger fade-1"></i>
+    <i class="fas fa-paw guild-icon fade-stagger fade-2"></i>
+    <i class="fas fa-shield-halved guild-icon fade-stagger fade-3"></i>
+    <i class="fas fa-crown guild-icon fade-stagger fade-4"></i>
+    <i class="fas fa-staff-snake guild-icon fade-stagger fade-5"></i>
+  </div>
 </div>
 
-<!-- Main App Content -->
-<div id="main-content">
-    <h1>Welcome to the Guild App</h1>
-    <p>This is your main app content.</p>
+<div id="intro-screen" class="screen" aria-hidden="true">
+  <div class="daggers" aria-hidden="true">
+    <img src="assets/images/dagger.webp" alt="dagger" class="dagger-icon"/>
+    <img src="assets/images/dagger.webp" alt="dagger" class="dagger-icon"/>
+  </div>
+  <h1>ASCEND</h1>
+  <p>You have been selected as the Player</p>
+  <button id="accept-btn" class="btn">ACCEPT</button>
+</div>
+
+<div id="login-screen" class="screen" aria-hidden="true">
+  <div class="card">
+    <h2>Hunter Authentication</h2>
+    <div class="field">
+      <label for="email">Hunter ID</label>
+      <input id="email" type="email" placeholder="hunter@email.com"/>
+    </div>
+    <div class="field">
+      <label for="password">Access Key</label>
+      <input id="password" type="password" placeholder="••••••••"/>
+    </div>
+    <div class="row">
+      <a class="link" href="#">Forgot Access Key?</a>
+      <button id="login-btn" class="btn">Authorise</button>
+    </div>
+  </div>
+</div>
+
+<div id="main-content" class="screen" aria-hidden="true">
+  <h1>Welcome to the Guild App</h1>
+  <p>This is your main app content.</p>
 </div>
 
 <script>
-    // Simulate loading delay
-    setTimeout(() => {
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-    }, 3000); // 3 seconds
-</script>
+  // Simple screen switch helper (NO CHANGE NEEDED HERE)
+  function show(idToShow) {
+    document.querySelectorAll('.screen').forEach(s => {
+      if (s.id === idToShow) {
+        s.classList.add('active');
+        s.setAttribute('aria-hidden', 'false');
+      } else {
+        s.classList.remove('active');
+        s.setAttribute('aria-hidden', 'true');
+      }
+    });
+  }
 
+  // 1) Loading -> Intro
+  setTimeout(() => {
+    show('intro-screen');
+  }, 3000);
+
+  // 2) Intro -> Login
+  document.getElementById('accept-btn').addEventListener('click', () => {
+    show('login-screen');
+  });
+
+  // 3) Login -> Main
+  document.getElementById('login-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    show('main-content');
+  });
+</script>
 </body>
 </html>
-
-
