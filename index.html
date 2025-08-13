@@ -4,23 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solo Leveling Guild App</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* Glowing background */
     body {
         margin: 0;
         height: 100vh;
         font-family: Arial, sans-serif;
-        background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgba(3,6,12,1) 100%);
+        background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgb(15, 30, 59) 100%);
         color: white;
         overflow: hidden;
-        animation: bgPulse 4s infinite alternate;
+        animation: bgPulse 0s infinite alternate;
     }
 
     @keyframes bgPulse {
-        0% { background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgba(3,6,12,1) 100%); }
-        100% { background: radial-gradient(circle at center, rgba(30,50,80,1) 0%, rgba(5,10,20,1) 100%); }
+        0% { background: radial-gradient(circle at center, rgba(20,30,50,1) 0%, rgb(20,30,50,1) 100%); }
+        100% { background: radial-gradient(circle at center, rgba(30,50,80,1) 0%, rgb(5,10,20,1) 100%); }
     }
-
+/*5,10,20,1*/
     /* Loading screen */
     #loading-screen {
         position: fixed;
@@ -37,15 +38,15 @@
     /* Guild icons container */
     .icon-container {
         display: flex;
-        gap: 20px;
+        gap: 0px;
     }
 
     /* Guild icons */
     .guild-icon {
-        width: 80px;
-        height: 80px;
+        width: 50px;
+        height: 50px;
         animation: iconGlow 1.5s infinite alternate;
-        filter: drop-shadow(0 0 5px #00f0ff);
+        filter: drop-shadow(0 0 20px #00f0ff);
     }
 
     @keyframes iconGlow {
@@ -56,7 +57,7 @@
     /* Main content hidden until loading finishes */
     #main-content {
         display: none;
-        padding: 20px;
+        padding: 10px;
         text-align: center;
     }
 </style>
@@ -66,9 +67,11 @@
 <!-- Loading Screen -->
 <div id="loading-screen">
     <div class="icon-container">
-        <img src="knight.png" class="guild-icon" alt="Guild Icon 1">
-        <img src="shield.png" class="guild-icon" alt="Guild Icon 2">
-        <img src="guild3.png" class="guild-icon" alt="Guild Icon 3">
+        <i class="fas fa-helmet-battle guild-icon"></i>
+        <i class="fas fa-dragon guild-icon"></i>
+        <i class="fas fa-shield-halved guild-icon"></i>
+        <i class="fas fa-crown guild-icon"></i>
+        <i class="fas fa-staff-snake guild-icon"></i>
     </div>
 </div>
 
