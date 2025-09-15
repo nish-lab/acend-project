@@ -81,7 +81,6 @@
         .nav-item.active, .nav-item:hover { color: #8B5CF6; transform: translateY(-2px); }
         .quest-checkbox { appearance: none; width: 1.5rem; height: 1.5rem; border: 2px solid #4A5568; border-radius: 0.25rem; cursor: pointer; }
         .quest-checkbox:checked { background-color: #3B82F6; border-color: #3B82F6; }
-        .quest-checkbox:checked::after { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #FFFFFF; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.8rem; }
         .quest-item:has(.quest-checkbox:checked) { text-decoration: line-through; color: #6B7280; }
         .btn-claim { background-color: #b48f00; color: #fffbe6; }
         .btn-claim:hover { background-color: #facc15; color: #422006; box-shadow: 0 0 10px #facc15; }
@@ -96,6 +95,7 @@
         .form-input { background-color: rgba(0,0,0,0.3); border: 1px solid #2a3a5a; color: white; }
         .class-card { border: 2px solid #2a3a5a; cursor: pointer; }
         .class-card.selected { border-color: #9fcdff; transform: scale(1.05); }
+        .info-icon { cursor: pointer; color: #9ddcff; margin-left: 8px; }
 
         /* --- Loading Screen Styles --- */
         .icon-container { display: flex; gap: 0px; }
@@ -277,7 +277,7 @@
             let state = { 
                 currentPage: 'loading',
                 currentAppScreen: 'profile',
-                currentQuestTab: 'daily', // Set default quest tab
+                currentQuestTab: 'weekly', // Set default quest tab
                 onboardingStep: 0, 
                 player: null
             };
@@ -318,7 +318,7 @@
             // --- FUNCTIONS ---
             function createNewPlayerState() {
                 return { 
-                    name: 'Player_01', level: 1, xp: 0, gold: 1000, statPoints: 5,
+                    name: 'Player_01', level: 1, xp: 0, gold: 1000, statPoints: 0, // Start with 0 points
                     xpForNextLevel: 100,
                     class: 'None', 
                     stats: { str: 10, agi: 10, sta: 10, int: 10, per: 10 },
@@ -326,6 +326,7 @@
                     streaks: { pushups: 0, situps: 0, squats: 0, run: 0, burpees: 0, plank: 0, stretching: 0 },
                     inventory: {},
                     journalSubmittedToday: false,
+                    dailyQuestsClaimedToday: false, // New state for locking daily quests
                     mainQuestsClaimed: { level5: false },
                     activeDungeonQuest: null
                 };
@@ -458,11 +459,17 @@
                             <div class="stat-item"><div class="stat-name"><i class="fa-solid fa-brain"></i> INT: <span id="stat-int" class="ml-2 font-bold"></span></div><button data-stat="int" class="btn-plus w-7 h-7 rounded-md text-white"><i class="fa-solid fa-plus"></i></button></div>
                             <div class="stat-item"><div class="stat-name"><i class="fa-solid fa-hand-fist"></i> PER: <span id="stat-per" class="ml-2 font-bold"></span></div><button data-stat="per" class="btn-plus w-7 h-7 rounded-md text-white"><i class="fa-solid fa-plus"></i></button></div>
                         </div>
-                        <div id="stat-points-display" class="mt-4 text-center hidden">
-                            <p class="text-sm text-gray-400">Available Ability Points</p>
+                        <div id="stat-points-display" class="mt-4 text-center">
+                            <p class="text-sm text-gray-400">
+                                Available Ability Points 
+                                <i id="stat-points-info" class="fas fa-circle-info info-icon"></i>
+                            </p>
                             <p id="stat-points-value" class="text-3xl font-bold text-yellow-400"></p>
                         </div>
                     </div>
+
+                    <!-- Daily Quests moved here -->
+                    <div id="daily-quest-container" class="box-bg p-4 rounded-lg"></div>
                 </div>`;
             }
 
@@ -534,8 +541,7 @@
                 return `<div class="w-full max-w-lg mx-auto space-y-4">
                     <div class="box-bg p-4 rounded-lg text-center"><h1 class="text-2xl font-bold text-glow-purple">QUESTS</h1></div>
                     <div class="box-bg p-2 rounded-lg flex justify-around">
-                        <button data-tab="daily" class="quest-tab active flex-1 py-2 font-semibold">Daily</button>
-                        <button data-tab="weekly" class="quest-tab flex-1 py-2 font-semibold">Weekly</button>
+                        <button data-tab="weekly" class="quest-tab active flex-1 py-2 font-semibold">Weekly</button>
                         <button data-tab="main" class="quest-tab flex-1 py-2 font-semibold">Main</button>
                         <button data-tab="dungeon" class="quest-tab flex-1 py-2 font-semibold">Dungeon</button>
                     </div>
@@ -581,12 +587,15 @@
 
                 const statPointsDisplay = document.getElementById('stat-points-display');
                 document.getElementById('stat-points-value').textContent = p.statPoints;
-                statPointsDisplay.classList.toggle('hidden', p.statPoints <= 0);
+                
+                document.getElementById('stat-points-info').onclick = showStatInfoPopup;
 
                 document.querySelectorAll('.btn-plus').forEach(btn => {
                     btn.disabled = p.statPoints <= 0;
                     btn.onclick = handleStatIncrease;
                 });
+                
+                renderDailyQuests();
             }
 
             function updateShopUI() {
@@ -605,23 +614,7 @@
                 let content = '';
                 const isClaimed = state.player.mainQuestsClaimed.level5;
 
-                if (state.currentQuestTab === 'daily') {
-                    content = `<div class="box-bg p-4 rounded-lg">
-                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
-                            <h3 class="text-lg font-semibold text-glow-blue">Daily Quests</h3>
-                            <div class="text-right">
-                                <p class="text-xs text-gray-400">Time until reset</p>
-                                <p id="countdown-timer" class="font-orbitron text-red-400 text-glow-red">00:00:00</p>
-                            </div>
-                        </div>
-                        <div id="quest-list" class="space-y-3"></div>
-                        <p class="text-yellow-400 text-sm mt-4 text-center"><i class="fas fa-exclamation-triangle mr-2"></i>Failure to complete will result in a penalty.</p>
-                        <div id="claim-container" class="mt-4 hidden"><button id="claim-button" class="btn-claim w-full font-bold py-2 rounded-md">Claim Reward</button></div>
-                    </div>`;
-                    questList.innerHTML = content;
-                    generateQuests();
-                    startCountdown();
-                } else if (state.currentQuestTab === 'weekly') {
+                if (state.currentQuestTab === 'weekly') {
                      content = `<div class="quest-card rounded-lg p-4">
                         <h3 class="font-semibold text-lg text-white">Weekly Consistency</h3>
                         <p class="text-sm text-gray-400 mb-3">Complete Daily Quests 5 times this week.</p>
@@ -651,7 +644,10 @@
                             <p class="text-sm text-gray-400 mb-3">${quest.desc}</p>
                             <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
                                 <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>${quest.reward.xp} XP, ${quest.reward.gold} G</div>
-                                <button id="abandon-dungeon-quest" class="btn-sell font-bold py-1 px-4 rounded-md">Abandon</button>
+                                <div class="flex space-x-2">
+                                    <button id="complete-dungeon-quest" class="btn-use font-bold py-1 px-4 rounded-md">Complete</button>
+                                    <button id="abandon-dungeon-quest" class="btn-sell font-bold py-1 px-4 rounded-md">Abandon</button>
+                                </div>
                             </div>
                         </div>`;
                     } else {
@@ -663,7 +659,6 @@
                      questList.innerHTML = content;
                 }
                 
-
                 const claimLevel5Btn = document.getElementById('claim-level-5');
                 if (claimLevel5Btn) {
                     claimLevel5Btn.onclick = async () => {
@@ -675,6 +670,11 @@
                         switchPage('app');
                         renderAppScreen();
                     };
+                }
+                
+                const completeDungeonBtn = document.getElementById('complete-dungeon-quest');
+                if(completeDungeonBtn) {
+                    completeDungeonBtn.onclick = handleCompleteDungeonQuest;
                 }
                 
                 const abandonDungeonBtn = document.getElementById('abandon-dungeon-quest');
@@ -706,6 +706,44 @@
                 if (submitBtn) {
                     submitBtn.onclick = handleJournalSubmit;
                 }
+            }
+            
+            function renderDailyQuests() {
+                 const container = document.getElementById('daily-quest-container');
+                 if(!container) return;
+                 
+                 if (state.player.dailyQuestsClaimedToday) {
+                    container.innerHTML = `
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+                             <h3 class="text-lg font-semibold text-glow-blue">Daily Quests</h3>
+                             <div class="text-right">
+                                <p class="text-xs text-gray-400">Time until reset</p>
+                                <p id="countdown-timer" class="font-orbitron text-red-400 text-glow-red">00:00:00</p>
+                            </div>
+                        </div>
+                        <div class="text-center py-4">
+                            <p class="text-lg">Daily Quests Completed!</p>
+                            <p class="text-gray-400">Come back tomorrow for new challenges.</p>
+                        </div>
+                    `;
+                    startCountdown(); // Still need the timer
+                    return;
+                 }
+                 
+                 container.innerHTML = `
+                    <div class="flex justify-between items-center mb-3 border-b border-gray-700 pb-2">
+                        <h3 class="text-lg font-semibold text-glow-blue">Daily Quests</h3>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-400">Time until reset</p>
+                            <p id="countdown-timer" class="font-orbitron text-red-400 text-glow-red">00:00:00</p>
+                        </div>
+                    </div>
+                    <div id="quest-list" class="space-y-3"></div>
+                    <p class="text-yellow-400 text-sm mt-4 text-center"><i class="fas fa-exclamation-triangle mr-2"></i>Failure to complete will result in a penalty.</p>
+                    <div id="claim-container" class="mt-4 hidden"><button id="claim-button" class="btn-claim w-full font-bold py-2 rounded-md">Claim Reward</button></div>
+                 `;
+                 generateQuests();
+                 startCountdown();
             }
 
             function generateQuests() {
@@ -805,12 +843,14 @@
 
                     if (timeRemaining <= 1000) {
                         state.player.journalSubmittedToday = false;
-                        // Reset streaks for uncompleted quests
+                        state.player.dailyQuestsClaimedToday = false;
                         document.querySelectorAll('#quest-list .quest-checkbox:not(:checked)').forEach(cb => {
                             const key = cb.dataset.questKey;
                             state.player.streaks[key] = 0;
                         });
-                        generateQuests();
+                        if (state.currentAppScreen === 'profile') {
+                           renderDailyQuests();
+                        }
                     }
 
                     const hours = Math.floor((timeRemaining / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
@@ -825,6 +865,7 @@
             async function handleClaim() {
                 let baselineIncreased = false;
                 let baselineUpdateText = '';
+                state.player.dailyQuestsClaimedToday = true;
 
                 document.querySelectorAll('#quest-list .quest-checkbox').forEach(cb => {
                     const key = cb.dataset.questKey;
@@ -833,16 +874,15 @@
                         if (state.player.streaks[key] >= 3) {
                             baselineIncreased = true;
                             if (key === 'run') {
-                                state.player.baseline[key] += 0.1; // Smaller increase for running
+                                state.player.baseline[key] += 0.1; 
                                 state.player.baseline[key] = Math.round(state.player.baseline[key] * 10) / 10;
                             } else {
                                 state.player.baseline[key]++;
                             }
                             baselineUpdateText += `<p>Your ${key} baseline has increased!</p>`;
-                            state.player.streaks[key] = 0; // Reset streak
+                            state.player.streaks[key] = 0;
                         }
                     } else {
-                        // Reset streak if quest was not completed
                         state.player.streaks[key] = 0;
                     }
                 });
@@ -856,7 +896,7 @@
                 }
                 
                 switchPage('app');
-                updateQuestsUI(); // Re-render quests to show new day
+                updateDashboardUI();
             }
             
             async function handleJournalSubmit() {
@@ -897,6 +937,18 @@
                     state.player.stats[stat]++;
                     updateDashboardUI();
                 }
+            }
+            
+            async function showStatInfoPopup() {
+                const content = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Ability Points</h2>
+                                 <p class="text-left mb-2">These points allow you to permanently increase your base stats.</p>
+                                 <ul class="text-left list-disc list-inside mb-4">
+                                     <li><b>How to Use:</b> Click the '+' button next to a stat on your profile.</li>
+                                     <li><b>How to Gain:</b> You gain 5 Ability Points every time you Level Up.</li>
+                                 </ul>
+                                 <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+                await showPopup(content);
+                switchPage('app');
             }
             
             async function initializeApp() {
@@ -981,6 +1033,19 @@
                     renderAppScreen();
                 }
             }
+
+            async function handleCompleteDungeonQuest() {
+                const quest = state.player.activeDungeonQuest;
+                if (!quest) return;
+
+                await addXp(quest.reward.xp);
+                state.player.gold += quest.reward.gold;
+                state.player.activeDungeonQuest = null;
+
+                await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Dungeon Cleared!</h2><p>You received ${quest.reward.xp} XP and ${quest.reward.gold} Gold.</p>`, 2500);
+                switchPage('app');
+                renderAppScreen();
+            }
             
             async function handleAbandonDungeonQuest() {
                  const onConfirm = () => {
@@ -1004,12 +1069,12 @@
                 let goal, title, desc, reward;
 
                 if (chosenExercise === 'run') {
-                    goal = Math.round((baseValue * multiplier) * 10) / 10; // Round to 1 decimal place
+                    goal = Math.round((baseValue * multiplier) * 10) / 10;
                     title = "The Endless Road";
                     desc = `Endure and run ${goal}km in a single session.`;
                     reward = { xp: Math.round(goal * 500), gold: Math.round(goal * 250) };
                 } else {
-                    goal = Math.ceil((baseValue * multiplier) / 5) * 5; // Round up to nearest 5
+                    goal = Math.ceil((baseValue * multiplier) / 5) * 5;
                     const exerciseName = chosenExercise.charAt(0).toUpperCase() + chosenExercise.slice(1);
                     title = `Test of ${exerciseName}`;
                     desc = `Prove your might. Complete ${goal} ${exerciseName}.`;
@@ -1125,3 +1190,4 @@
     </script>
 </body>
 </html>
+
