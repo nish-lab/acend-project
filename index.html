@@ -42,11 +42,17 @@
             visibility: visible; 
             transform: translateY(0);
         }
+        .page-content, #quest-list-detailed {
+             transition: opacity 0.3s ease-in-out;
+        }
         .page-content {
              width: 100%; max-width: 42rem;
              height: 100%;
              padding: 1rem;
              display: flex; flex-direction: column;
+        }
+        .fade-out {
+            opacity: 0 !important;
         }
 
         /* --- Ornate Theme & Popups --- */
@@ -75,8 +81,29 @@
         .box-bg { background-color: rgba(23, 23, 23, 0.85); border: 1px solid rgba(55, 65, 81, 0.5); backdrop-filter: blur(10px); }
         .progress-bar-bg { background-color: #2D3748; }
         .progress-bar-fill { background: linear-gradient(90deg, #3B82F6, #8B5CF6); transition: width 0.5s ease; }
-        .btn-plus { background-color: rgba(59, 130, 246, 0.2); border: 1px solid #3B82F6; }
+        
+        .btn-plus { 
+            background-color: rgba(59, 130, 246, 0.2); 
+            border: 1px solid #3B82F6; 
+            transition: transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
         .btn-plus:disabled { background-color: #2d3748; border-color: #4a5568; color: #718096; cursor: not-allowed; }
+        .btn-plus.pulsate { animation: pulsate-glow 2s infinite ease-in-out; }
+        .btn-plus.clicked { animation: click-flash 0.3s ease; }
+        @keyframes pulsate-glow {
+            0%, 100% { box-shadow: 0 0 4px #3B82F6; }
+            50% { box-shadow: 0 0 12px #3B82F6; }
+        }
+        @keyframes click-flash {
+            0% { transform: scale(1); box-shadow: 0 0 15px #8B5CF6; }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        
         .nav-item { transition: all 0.2s ease-in-out; cursor: pointer; }
         .nav-item.active, .nav-item:hover { color: #8B5CF6; transform: translateY(-2px); }
         .quest-checkbox { appearance: none; width: 1.5rem; height: 1.5rem; border: 2px solid #4A5568; border-radius: 0.25rem; cursor: pointer; }
@@ -180,9 +207,54 @@
             color: #9ddcff;
         }
 
+        /* --- Tutorial Styles --- */
+        #tutorial-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        #tutorial-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #tutorial-box {
+            position: absolute;
+            background-color: rgba(10, 25, 47, 0.95);
+            border: 1px solid #5a8fbb;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 25px rgba(90, 143, 187, 0.3);
+            max-width: 350px;
+            z-index: 1002;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #tutorial-overlay.active #tutorial-box {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .tutorial-highlight {
+            position: relative;
+            z-index: 1001;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.7), 0 0 15px 5px #9fcdff;
+            transition: box-shadow 0.5s ease;
+        }
     </style>
 </head>
 <body>
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay">
+        <div id="tutorial-box">
+            <p id="tutorial-text" class="mb-4"></p>
+            <button id="tutorial-next" class="btn-system w-full font-bold py-2 rounded-sm">Next</button>
+        </div>
+    </div>
 
     <!-- Loading Screen -->
     <div id="page-loading" class="page active">
@@ -199,8 +271,8 @@
     <div id="page-intro" class="page">
         <div class="daggers">
             <!-- Embedded Base64 image to ensure it loads without external files -->
-            <img src="assets/images/dagger.webp" alt="dagger"/>
-            <img src="assets/images/dagger.webp" alt="dagger"/>
+            <img src="data:image/webp;base64,UklGRjAEAABXRUJQVlA4ICQEAABwHwCdASoUApQAPm02lkikIqGYBABABsCwlpu3//4x4Q/mf+d/sH8Z/sv2f/V/2H/L/2H/a/2L/hf4z/N/3D/U/gH/Of5b/cf8f/Bf9x/pP8B/0P/B/3X/A/2f/B/3P+4/8X/p/gD/kv9p/3P+D/5P/A/3H/I/7//8/4v///9z3AP8p/oP/B/yH/G/6H/B/7b/if9f/qf+T/s//L/5v/L/4H/Pf6H/p/5r/x/9z/yv+F/3P+3/8v/p/gH+U/0n/Q/3n/L/7X/k/7v/4/4//p//L/5H/Vf8D/g/8r/qf+L/wv+p/4P/O/6H/o/5r/rf+T/u//L/8H/3f+B/9v//+Gf5D/Yf9z/lf9t/3v+F/3v/B/7H/E/7n/q/+b/zP+h/5P+y/8v/u/8H/v/+B/////+A/8H/Yf9z/lf9t/3v+F/3v/B/7H/E/7n/q/+b/zP+h/5P+y/8v/u/8H/v/+B/////+A////gA" alt="dagger"/>
+            <img src="data:image/webp;base64,UklGRjAEAABXRUJQVlA4ICQEAABwHwCdASoUApQAPm02lkikIqGYBABABsCwlpu3//4x4Q/mf+d/sH8Z/sv2f/V/2H/L/2H/a/2L/hf4z/N/3D/U/gH/Of5b/cf8f/Bf9x/pP8B/0P/B/3X/A/2f/B/3P+4/8X/p/gD/kv9p/3P+D/5P/A/3H/I/7//8/4v///9z3AP8p/oP/B/yH/G/6H/B/7b/if9f/qf+T/s//L/5v/L/4H/Pf6H/p/5r/x/9z/yv+F/3P+3/8v/p/gH+U/0n/Q/3n/L/7X/k/7v/4/4//p//L/5H/Vf8D/g/8r/qf+L/wv+p/4P/O/6H/o/5r/rf+T/u//L/8H/3f+B/9v//+Gf5D/Yf9z/lf9t/3v+F/3v/B/7H/E/7n/q/+b/zP+h/5P+y/8v/u/8H/v/+B/////+A/8H/Yf9z/lf9t/3v+F/3v/B/7H/E/7n/q/+b/zP+h/5P+y/8v/u/8H/v/+B/////+A////gA" alt="dagger"/>
         </div>
         <h1 class="text-3xl font-orbitron font-bold tracking-wider text-glow-subtle">ASCEND</h1>
         <p class="text-gray-300 mt-2 mb-6">You have been selected as the Player</p>
@@ -292,22 +364,32 @@
             const appScreenContainer = pages.app.querySelector('.page-content');
             const popupBox = document.getElementById('popup-box');
             
-            // --- TEMPLATES ---
+            // --- TEMPLATES & GAME DATA ---
+            const titles = {
+                Assassin: { 1: 'Shadow Novice', 10: 'Silent Blade', 20: 'Phantom Edge', 30: 'Nightfall Striker' },
+                Tank: { 1: 'Solid Guard', 10: 'Steel Bulwark', 20: 'Iron Colossus', 30: 'Unbreakable Aegis' },
+                Mage: { 1: 'Mana Apprentice', 10: 'Skilled Conjurer', 20: 'Arcane Archmage', 30: 'Void Sovereign' }
+            };
+
             const onboardingSteps = [
-                { title: 'Create Your Profile', content: `<div><label for="name" class="block mb-1 text-sm">Name</label><input type="text" id="name" class="form-input w-full p-2 rounded-sm" placeholder="Player_01"></div><div class="grid grid-cols-2 gap-4 mt-4"><div><label for="age" class="block mb-1 text-sm">Age</label><input type="number" id="age" class="form-input w-full p-2 rounded-sm" placeholder="25"></div><div><label for="weight" class="block mb-1 text-sm">Weight (kg)</label><input type="number" id="weight" class="form-input w-full p-2 rounded-sm" placeholder="75"></div></div>` },
+                { title: 'Create Your Profile', content: `<div><label for="name" class="block mb-1 text-sm">Name</label><input type="text" id="name" class="form-input w-full p-2 rounded-sm" placeholder="Player_01"></div><div class="grid grid-cols-2 gap-4 mt-4"><div><label for="age" class="block mb-1 text-sm">Age</label><input type="number" min="0" id="age" class="form-input w-full p-2 rounded-sm" placeholder="25"></div><div><label for="weight" class="block mb-1 text-sm">Weight (kg)</label><input type="number" min="0" id="weight" class="form-input w-full p-2 rounded-sm" placeholder="75"></div></div>` },
                 { title: 'Choose Your Path', content: `<div class="space-y-3"><div class="class-card p-3 rounded-lg" data-class="Assassin"><h3 class="font-bold text-lg"><i class="fas fa-running mr-2"></i>Assassin</h3><p class="text-sm text-gray-400">Focus on agility and HIIT.</p></div><div class="class-card p-3 rounded-lg" data-class="Tank"><h3 class="font-bold text-lg"><i class="fas fa-shield-alt mr-2"></i>Tank</h3><p class="text-sm text-gray-400">Focus on strength and endurance.</p></div><div class="class-card p-3 rounded-lg" data-class="Mage"><h3 class="font-bold text-lg"><i class="fas fa-brain mr-2"></i>Mage</h3><p class="text-sm text-gray-400">Focus on flexibility and skill.</p></div></div>` },
-                { title: 'Assess Your Power', content: `<p class="text-center text-sm text-gray-400 -mt-2 mb-4">Enter your max reps or time in a single set.</p>
+                { 
+                    title: 'Assess Your Power', 
+                    content: `<p class="text-center text-sm text-gray-400 -mt-2 mb-4">Enter your max reps or time in a single set.</p>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label for="pushups" class="block mb-1 text-sm">Push-ups</label><input type="number" id="pushups" class="form-input w-full p-2 rounded-sm" placeholder="10"></div>
-                        <div><label for="situps" class="block mb-1 text-sm">Sit-ups</label><input type="number" id="situps" class="form-input w-full p-2 rounded-sm" placeholder="20"></div>
-                        <div><label for="squats" class="block mb-1 text-sm">Squats</label><input type="number" id="squats" class="form-input w-full p-2 rounded-sm" placeholder="25"></div>
-                        <div><label for="run" class="block mb-1 text-sm">Max Run (km)</label><input type="number" id="run" class="form-input w-full p-2 rounded-sm" placeholder="2"></div>
-                        <div><label for="burpees" class="block mb-1 text-sm">Burpees</label><input type="number" id="burpees" class="form-input w-full p-2 rounded-sm" placeholder="10"></div>
-                        <div><label for="plank" class="block mb-1 text-sm">Plank (seconds)</label><input type="number" id="plank" class="form-input w-full p-2 rounded-sm" placeholder="30"></div>
-                    </div>
-                    <div class="mt-4"><label for="stretching" class="block mb-1 text-sm">Stretching</label><select id="stretching" class="form-input w-full p-2 rounded-sm"><option value="0">Never</option><option value="1" selected>Sometimes</option><option value="2">Regularly</option></select></div>
-                    ` }
+                        <div><label class="block mb-1 text-sm">Push-ups</label><input type="number" min="0" id="pushups" class="form-input w-full p-2 rounded-sm" placeholder="15"></div>
+                        <div><label class="block mb-1 text-sm">Sit-ups</label><input type="number" min="0" id="situps" class="form-input w-full p-2 rounded-sm" placeholder="25"></div>
+                        <div><label class="block mb-1 text-sm">Squats</label><input type="number" min="0" id="squats" class="form-input w-full p-2 rounded-sm" placeholder="30"></div>
+                        <div><label class="block mb-1 text-sm">Pull-ups</label><input type="number" min="0" id="pullups" class="form-input w-full p-2 rounded-sm" placeholder="5"></div>
+                        <div><label class="block mb-1 text-sm">Leg Raises</label><input type="number" min="0" id="leg_raises" class="form-input w-full p-2 rounded-sm" placeholder="20"></div>
+                        <div><label class="block mb-1 text-sm">Jumping Jacks</label><input type="number" min="0" id="jumping_jacks" class="form-input w-full p-2 rounded-sm" placeholder="50"></div>
+                        <div><label class="block mb-1 text-sm">Plank (sec)</label><input type="number" min="0" id="plank" class="form-input w-full p-2 rounded-sm" placeholder="45"></div>
+                        <div><label class="block mb-1 text-sm">Run (km)</label><input type="number" min="0" step="0.1" id="run" class="form-input w-full p-2 rounded-sm" placeholder="2.5"></div>
+                    </div>` 
+                }
             ];
+
              const shopItems = [
                 { id: 'xp_boost', name: 'XP Boost', icon: 'fa-flask-potion', color: 'text-purple-400', desc: 'Doubles XP from your next workout.', price: 500 },
                 { id: 'dungeon_key', name: 'Dungeon Key', icon: 'fa-key', color: 'text-yellow-400', desc: 'Unlocks a random special quest.', price: 1000 },
@@ -318,18 +400,32 @@
             // --- FUNCTIONS ---
             function createNewPlayerState() {
                 return { 
-                    name: 'Player_01', level: 1, xp: 0, gold: 1000, statPoints: 0, // Start with 0 points
+                    name: 'Player_01', level: 1, xp: 0, gold: 1000, statPoints: 0,
                     xpForNextLevel: 100,
                     class: 'None', 
                     stats: { str: 10, agi: 10, sta: 10, int: 10, per: 10 },
-                    baseline: { pushups: 15, situps: 20, squats: 25, run: 2, burpees: 10, plank: 30, stretching: 1 },
-                    streaks: { pushups: 0, situps: 0, squats: 0, run: 0, burpees: 0, plank: 0, stretching: 0 },
+                    baseline: { pushups: 15, situps: 25, squats: 30, pullups: 5, leg_raises: 20, jumping_jacks: 50, plank: 45, run: 2.5 },
+                    streaks: { pushups: 0, situps: 0, squats: 0, pullups: 0, leg_raises: 0, jumping_jacks: 0, plank: 0, run: 0 },
                     inventory: {},
                     journalSubmittedToday: false,
-                    dailyQuestsClaimedToday: false, // New state for locking daily quests
+                    dailyQuestsClaimedToday: false,
                     mainQuestsClaimed: { level5: false },
-                    activeDungeonQuest: null
+                    activeDungeonQuest: null,
+                    hasCompletedTutorial: false
                 };
+            }
+
+            function getPlayerTitle(player) {
+                const classTitles = titles[player.class];
+                if (!classTitles) return player.class; // Fallback
+                
+                let currentTitle = classTitles[1];
+                for (const levelReq in classTitles) {
+                    if (player.level >= parseInt(levelReq)) {
+                        currentTitle = classTitles[levelReq];
+                    }
+                }
+                return currentTitle;
             }
 
             function switchPage(pageName) {
@@ -409,37 +505,43 @@
             }
             
             function renderAppScreen() {
-                let content = '';
-                if (state.currentAppScreen === 'profile') content = getProfileHTML();
-                if (state.currentAppScreen === 'shop') content = getShopHTML();
-                if (state.currentAppScreen === 'inventory') content = getInventoryHTML();
-                if (state.currentAppScreen === 'quests') content = getQuestsHTML();
-                if (state.currentAppScreen === 'journal') content = getJournalHTML();
-                appScreenContainer.innerHTML = content;
-                
-                if (state.currentAppScreen === 'profile') {
-                    updateDashboardUI();
-                } else if (state.currentAppScreen === 'shop') {
-                    updateShopUI();
-                } else if (state.currentAppScreen === 'inventory') {
-                    updateInventoryUI();
-                } else if (state.currentAppScreen === 'quests') {
-                    updateQuestsUI();
-                } else if (state.currentAppScreen === 'journal') {
-                    updateJournalUI();
-                }
+                const contentContainer = appScreenContainer;
+                contentContainer.classList.add('fade-out');
+
+                setTimeout(() => {
+                    let content = '';
+                    if (state.currentAppScreen === 'profile') content = getProfileHTML();
+                    if (state.currentAppScreen === 'shop') content = getShopHTML();
+                    if (state.currentAppScreen === 'inventory') content = getInventoryHTML();
+                    if (state.currentAppScreen === 'quests') content = getQuestsHTML();
+                    if (state.currentAppScreen === 'journal') content = getJournalHTML();
+                    contentContainer.innerHTML = content;
+                    
+                    if (state.currentAppScreen === 'profile') {
+                        updateDashboardUI();
+                    } else if (state.currentAppScreen === 'shop') {
+                        updateShopUI();
+                    } else if (state.currentAppScreen === 'inventory') {
+                        updateInventoryUI();
+                    } else if (state.currentAppScreen === 'quests') {
+                        updateQuestsUI();
+                    } else if (state.currentAppScreen === 'journal') {
+                        updateJournalUI();
+                    }
+                    contentContainer.classList.remove('fade-out');
+                }, 300);
             }
             
             function getProfileHTML() {
                 return `<div class="w-full max-w-lg mx-auto space-y-6">
-                    <div class="status-header">STATUS</div>
+                    <div id="tutorial-profile-status" class="status-header">STATUS</div>
                     
-                    <div class="box-bg p-4 rounded-lg">
+                    <div id="tutorial-profile-main" class="box-bg p-4 rounded-lg">
                         <div class="flex items-center space-x-4">
                             <div class="text-7xl font-bold font-orbitron text-glow-subtle" id="level-text"></div>
                             <div class="flex-grow">
                                 <h2 id="player-name" class="text-xl font-bold text-white"></h2>
-                                <p class="text-gray-400">JOB: <span id="player-title" class="text-blue-400 text-glow-blue"></span></p>
+                                <p class="text-gray-400">TITLE: <span id="player-title" class="text-blue-400 text-glow-blue"></span></p>
                             </div>
                         </div>
                         <div class="mt-4">
@@ -451,7 +553,7 @@
                         </div>
                     </div>
 
-                    <div class="box-bg p-4 rounded-lg">
+                    <div id="tutorial-profile-stats" class="box-bg p-4 rounded-lg">
                         <div class="stat-grid">
                             <div class="stat-item"><div class="stat-name"><i class="fa-solid fa-dumbbell"></i> STR: <span id="stat-str" class="ml-2 font-bold"></span></div><button data-stat="str" class="btn-plus w-7 h-7 rounded-md text-white"><i class="fa-solid fa-plus"></i></button></div>
                             <div class="stat-item"><div class="stat-name"><i class="fa-solid fa-heart-pulse"></i> STA: <span id="stat-sta" class="ml-2 font-bold"></span></div><button data-stat="sta" class="btn-plus w-7 h-7 rounded-md text-white"><i class="fa-solid fa-plus"></i></button></div>
@@ -488,7 +590,7 @@
 
                 return `<div class="w-full max-w-lg mx-auto space-y-4">
                     <div class="box-bg p-4 rounded-lg text-center"><h1 class="text-2xl font-bold text-glow-purple">SHOP</h1></div>
-                    <div class="box-bg p-3 rounded-lg flex justify-between items-center">
+                    <div id="tutorial-shop-balance" class="box-bg p-3 rounded-lg flex justify-between items-center">
                         <span class="font-semibold text-lg">Your Balance:</span>
                         <span id="gold-balance" class="font-bold text-2xl text-yellow-400"></span>
                     </div>
@@ -533,14 +635,14 @@
                         <span class="font-semibold text-lg">Your Balance:</span>
                         <span id="gold-balance-inv" class="font-bold text-2xl text-yellow-400"></span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">${itemsHTML}</div>
+                    <div id="tutorial-inventory" class="grid grid-cols-2 sm:grid-cols-3 gap-4">${itemsHTML}</div>
                 </div>`;
             }
 
             function getQuestsHTML() {
                 return `<div class="w-full max-w-lg mx-auto space-y-4">
                     <div class="box-bg p-4 rounded-lg text-center"><h1 class="text-2xl font-bold text-glow-purple">QUESTS</h1></div>
-                    <div class="box-bg p-2 rounded-lg flex justify-around">
+                    <div id="tutorial-quest-tabs" class="box-bg p-2 rounded-lg flex justify-around">
                         <button data-tab="weekly" class="quest-tab active flex-1 py-2 font-semibold">Weekly</button>
                         <button data-tab="main" class="quest-tab flex-1 py-2 font-semibold">Main</button>
                         <button data-tab="dungeon" class="quest-tab flex-1 py-2 font-semibold">Dungeon</button>
@@ -562,7 +664,7 @@
 
                 return `<div class="w-full max-w-lg mx-auto space-y-4">
                     <div class="box-bg p-4 rounded-lg text-center"><h1 class="text-2xl font-bold text-glow-purple">DAILY JOURNAL</h1></div>
-                    <div class="box-bg p-4 rounded-lg">
+                    <div id="tutorial-journal" class="box-bg p-4 rounded-lg">
                         <p class="text-sm text-gray-300 mb-3">Write about your day. Your thoughts, your struggles, your victories. The system rewards reflection.</p>
                         <textarea id="journal-entry" class="form-input w-full h-48 p-2 rounded-sm resize-none" placeholder="Begin writing here..."></textarea>
                         <div class="flex justify-between items-center mt-3">
@@ -576,7 +678,7 @@
             function updateDashboardUI() {
                 const p = state.player;
                 document.getElementById('player-name').textContent = p.name;
-                document.getElementById('player-title').textContent = `${p.class}`;
+                document.getElementById('player-title').textContent = getPlayerTitle(p);
                 document.getElementById('level-text').textContent = p.level;
                 document.getElementById('xp-text').textContent = `${p.xp} / ${p.xpForNextLevel}`;
                 document.getElementById('xp-bar').style.width = `${(p.xp / p.xpForNextLevel) * 100}%`;
@@ -592,6 +694,7 @@
 
                 document.querySelectorAll('.btn-plus').forEach(btn => {
                     btn.disabled = p.statPoints <= 0;
+                    btn.classList.toggle('pulsate', p.statPoints > 0);
                     btn.onclick = handleStatIncrease;
                 });
                 
@@ -610,77 +713,82 @@
             }
             
             function updateQuestsUI() {
-                const questList = appScreenContainer.querySelector('#quest-list-detailed');
-                let content = '';
-                const isClaimed = state.player.mainQuestsClaimed.level5;
+                const questList = document.getElementById('quest-list-detailed');
+                questList.classList.add('fade-out');
 
-                if (state.currentQuestTab === 'weekly') {
-                     content = `<div class="quest-card rounded-lg p-4">
-                        <h3 class="font-semibold text-lg text-white">Weekly Consistency</h3>
-                        <p class="text-sm text-gray-400 mb-3">Complete Daily Quests 5 times this week.</p>
-                        <div class="w-full progress-bar-bg rounded-full h-2.5"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 40%"></div></div>
-                        <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
-                            <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>1 Dungeon Key</div>
-                            <button class="btn-claim font-bold py-1 px-4 rounded-md" disabled>Claim</button>
-                        </div>
-                    </div>`;
-                     questList.innerHTML = content;
-                } else if (state.currentQuestTab === 'main') {
-                     content = `<div class="quest-card ${isClaimed ? 'completed' : ''} rounded-lg p-4">
-                        <h3 class="font-semibold text-lg ${isClaimed ? '' : 'text-white'}">The First Step</h3>
-                        <p class="text-sm text-gray-400 mb-3">Reach Level 5.</p>
-                        <div class="w-full progress-bar-bg rounded-full h-2.5"><div class="bg-blue-500 h-2.5 rounded-full" style="width: ${ (state.player.level / 5) * 100 }% "></div></div>
-                        <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
-                            <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>500 XP, 250 G</div>
-                            <button id="claim-level-5" class="btn-claim font-bold py-1 px-4 rounded-md" ${state.player.level < 5 || isClaimed ? 'disabled' : ''}>${isClaimed ? 'Claimed' : 'Claim'}</button>
-                        </div>
-                    </div>`;
-                     questList.innerHTML = content;
-                } else if (state.currentQuestTab === 'dungeon') {
-                    if (state.player.activeDungeonQuest) {
-                        const quest = state.player.activeDungeonQuest;
-                        content = `<div class="quest-card rounded-lg p-4 border-l-4 border-red-500">
-                            <h3 class="font-semibold text-lg text-white">${quest.title}</h3>
-                            <p class="text-sm text-gray-400 mb-3">${quest.desc}</p>
+                setTimeout(() => {
+                    let content = '';
+                    const isClaimed = state.player.mainQuestsClaimed.level5;
+
+                    if (state.currentQuestTab === 'weekly') {
+                         content = `<div class="quest-card rounded-lg p-4">
+                            <h3 class="font-semibold text-lg text-white">Weekly Consistency</h3>
+                            <p class="text-sm text-gray-400 mb-3">Complete Daily Quests 5 times this week.</p>
+                            <div class="w-full progress-bar-bg rounded-full h-2.5"><div class="bg-blue-500 h-2.5 rounded-full" style="width: 40%"></div></div>
                             <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
-                                <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>${quest.reward.xp} XP, ${quest.reward.gold} G</div>
-                                <div class="flex space-x-2">
-                                    <button id="complete-dungeon-quest" class="btn-use font-bold py-1 px-4 rounded-md">Complete</button>
-                                    <button id="abandon-dungeon-quest" class="btn-sell font-bold py-1 px-4 rounded-md">Abandon</button>
-                                </div>
+                                <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>1 Dungeon Key</div>
+                                <button class="btn-claim font-bold py-1 px-4 rounded-md" disabled>Claim</button>
                             </div>
                         </div>`;
-                    } else {
-                        content = `<div class="quest-card rounded-lg p-4 text-center">
-                            <p>No active dungeon quest.</p>
-                            <p class="text-sm text-gray-400 mt-1">Use a Dungeon Key from your inventory to start one.</p>
+                    } else if (state.currentQuestTab === 'main') {
+                         content = `<div class="quest-card ${isClaimed ? 'completed' : ''} rounded-lg p-4">
+                            <h3 class="font-semibold text-lg ${isClaimed ? '' : 'text-white'}">The First Step</h3>
+                            <p class="text-sm text-gray-400 mb-3">Reach Level 5.</p>
+                            <div class="w-full progress-bar-bg rounded-full h-2.5"><div class="bg-blue-500 h-2.5 rounded-full" style="width: ${ (state.player.level / 5) * 100 }% "></div></div>
+                            <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
+                                <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>500 XP, 250 G</div>
+                                <button id="claim-level-5" class="btn-claim font-bold py-1 px-4 rounded-md" ${state.player.level < 5 || isClaimed ? 'disabled' : ''}>${isClaimed ? 'Claimed' : 'Claim'}</button>
+                            </div>
                         </div>`;
+                    } else if (state.currentQuestTab === 'dungeon') {
+                        if (state.player.activeDungeonQuest) {
+                            const quest = state.player.activeDungeonQuest;
+                            content = `<div class="quest-card rounded-lg p-4 border-l-4 border-red-500">
+                                <h3 class="font-semibold text-lg text-white">${quest.title}</h3>
+                                <p class="text-sm text-gray-400 mb-3">${quest.desc}</p>
+                                <div class="border-t border-gray-600 mt-3 pt-3 flex justify-between items-center">
+                                    <div class="text-sm"><span class="font-semibold text-yellow-400">Rewards: </span>${quest.reward.xp} XP, ${quest.reward.gold} G</div>
+                                    <div class="flex space-x-2">
+                                        <button id="complete-dungeon-quest" class="btn-use font-bold py-1 px-4 rounded-md">Complete</button>
+                                        <button id="abandon-dungeon-quest" class="btn-sell font-bold py-1 px-4 rounded-md">Abandon</button>
+                                    </div>
+                                </div>
+                            </div>`;
+                        } else {
+                            content = `<div class="quest-card rounded-lg p-4 text-center">
+                                <p>No active dungeon quest.</p>
+                                <p class="text-sm text-gray-400 mt-1">Use a Dungeon Key from your inventory to start one.</p>
+                            </div>`;
+                        }
                     }
-                     questList.innerHTML = content;
-                }
-                
-                const claimLevel5Btn = document.getElementById('claim-level-5');
-                if (claimLevel5Btn) {
-                    claimLevel5Btn.onclick = async () => {
-                        if (state.player.mainQuestsClaimed.level5) return;
-                        state.player.mainQuestsClaimed.level5 = true;
-                        await addXp(500);
-                        state.player.gold += 250;
-                        await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Rewards Claimed</h2><p class="text-xl">You received 500 XP and 250 Gold.</p>`, 2000);
-                        switchPage('app');
-                        renderAppScreen();
-                    };
-                }
-                
-                const completeDungeonBtn = document.getElementById('complete-dungeon-quest');
-                if(completeDungeonBtn) {
-                    completeDungeonBtn.onclick = handleCompleteDungeonQuest;
-                }
-                
-                const abandonDungeonBtn = document.getElementById('abandon-dungeon-quest');
-                if(abandonDungeonBtn) {
-                    abandonDungeonBtn.onclick = handleAbandonDungeonQuest;
-                }
+
+                    questList.innerHTML = content;
+                    questList.classList.remove('fade-out');
+
+                    const claimLevel5Btn = document.getElementById('claim-level-5');
+                    if (claimLevel5Btn) {
+                        claimLevel5Btn.onclick = async () => {
+                            if (state.player.mainQuestsClaimed.level5) return;
+                            state.player.mainQuestsClaimed.level5 = true;
+                            await addXp(500);
+                            state.player.gold += 250;
+                            await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Rewards Claimed</h2><p class="text-xl">You received 500 XP and 250 Gold.</p>`, 2000);
+                            switchPage('app');
+                            renderAppScreen();
+                        };
+                    }
+                    
+                    const completeDungeonBtn = document.getElementById('complete-dungeon-quest');
+                    if(completeDungeonBtn) {
+                        completeDungeonBtn.onclick = handleCompleteDungeonQuest;
+                    }
+                    
+                    const abandonDungeonBtn = document.getElementById('abandon-dungeon-quest');
+                    if(abandonDungeonBtn) {
+                        abandonDungeonBtn.onclick = handleAbandonDungeonQuest;
+                    }
+
+                }, 300);
 
                 appScreenContainer.querySelectorAll('.quest-tab').forEach(tab => {
                     tab.classList.toggle('active', tab.dataset.tab === state.currentQuestTab);
@@ -756,22 +864,23 @@
                     pushups: { name: 'Push-ups', unit: 'reps' },
                     situps: { name: 'Sit-ups', unit: 'reps' },
                     squats: { name: 'Squats', unit: 'reps' },
-                    burpees: { name: 'Burpees', unit: 'reps' },
+                    pullups: { name: 'Pull-ups', unit: 'reps' },
+                    leg_raises: { name: 'Leg Raises', unit: 'reps' },
+                    jumping_jacks: { name: 'Jumping Jacks', unit: 'reps' },
                     plank: { name: 'Plank', unit: 'seconds' },
-                    stretching: { name: 'Stretching', unit: 'minutes' },
                     run: { name: 'Run', unit: 'km' }
                 };
 
                 // Determine quests based on class
                 switch (p.class) {
                     case 'Tank':
-                        dailyQuests = ['pushups', 'squats', 'situps'];
+                        dailyQuests = ['pullups', 'pushups', 'squats'];
                         break;
                     case 'Assassin':
-                        dailyQuests = ['run', 'burpees', 'pushups'];
+                        dailyQuests = ['run', 'jumping_jacks', 'leg_raises'];
                         break;
                     case 'Mage':
-                        dailyQuests = ['plank', 'stretching', 'squats'];
+                        dailyQuests = ['plank', 'situps', 'squats'];
                         break;
                     default:
                         dailyQuests = ['pushups', 'situps', 'squats'];
@@ -781,12 +890,8 @@
                 dailyQuests.forEach(key => {
                     const questInfo = allQuests[key];
                     let goal = 0;
-                    if (key === 'stretching') {
-                        goal = 10; // Fixed 10 minute goal for stretching
-                    } else {
-                        goal = Math.max(10, Math.ceil(p.baseline[key]) || 10);
-                        if(key === 'run') goal = Math.max(1, p.baseline[key] || 1);
-                    }
+                    goal = Math.max(5, Math.ceil(p.baseline[key]) || 5);
+                    if(key === 'run') goal = Math.max(1, p.baseline[key] || 1);
                     
                     questHTML += `<div class="flex items-center space-x-3 quest-item">
                         <input type="checkbox" class="quest-checkbox" data-quest-key="${key}">
@@ -829,11 +934,13 @@
                 }
             }
 
+            let countdownInterval;
             function startCountdown() {
                 const timerEl = document.getElementById('countdown-timer');
                 if (!timerEl) return;
+                if(countdownInterval) clearInterval(countdownInterval);
 
-                const countdownInterval = setInterval(() => {
+                countdownInterval = setInterval(() => {
                     const now = new Date();
                     const tomorrow = new Date();
                     tomorrow.setDate(now.getDate() + 1);
@@ -846,7 +953,7 @@
                         state.player.dailyQuestsClaimedToday = false;
                         document.querySelectorAll('#quest-list .quest-checkbox:not(:checked)').forEach(cb => {
                             const key = cb.dataset.questKey;
-                            state.player.streaks[key] = 0;
+                            if(state.player.streaks[key]) state.player.streaks[key] = 0;
                         });
                         if (state.currentAppScreen === 'profile') {
                            renderDailyQuests();
@@ -857,7 +964,7 @@
                     const minutes = Math.floor((timeRemaining / 1000 / 60) % 60).toString().padStart(2, '0');
                     const seconds = Math.floor((timeRemaining / 1000) % 60).toString().padStart(2, '0');
                     
-                    timerEl.textContent = `${hours}:${minutes}:${seconds}`;
+                    if(timerEl) timerEl.textContent = `${hours}:${minutes}:${seconds}`;
                 }, 1000);
             }
 
@@ -935,6 +1042,11 @@
                 if (state.player.statPoints > 0) {
                     state.player.statPoints--;
                     state.player.stats[stat]++;
+                    
+                    const button = e.currentTarget;
+                    button.classList.add('clicked');
+                    setTimeout(() => button.classList.remove('clicked'), 300);
+
                     updateDashboardUI();
                 }
             }
@@ -970,18 +1082,13 @@
             function validateOnboardingStep() {
                 const step = state.onboardingStep;
                 if (step === 0) {
-                    const name = document.getElementById('name').value.trim();
-                    const age = document.getElementById('age').value.trim();
-                    const weight = document.getElementById('weight').value.trim();
-                    if (!name || !age || !weight) return false;
+                    const fields = ['name', 'age', 'weight'];
+                    return fields.every(id => document.getElementById(id).value.trim() !== '');
                 } else if (step === 1) {
-                    if (state.player.class === 'None') return false;
+                    return state.player.class !== 'None';
                 } else if (step === 2) {
-                    const pushups = document.getElementById('pushups').value.trim();
-                    const situps = document.getElementById('situps').value.trim();
-                    const squats = document.getElementById('squats').value.trim();
-                    const run = document.getElementById('run').value.trim();
-                    if (!pushups || !situps || !squats || !run) return false;
+                    const fields = ['pushups', 'situps', 'squats', 'pullups', 'leg_raises', 'jumping_jacks', 'plank', 'run'];
+                    return fields.every(id => document.getElementById(id).value.trim() !== '');
                 }
                 return true;
             }
@@ -1084,6 +1191,12 @@
                 return { id: `dq_${Date.now()}`, title, desc, reward };
             }
 
+            document.addEventListener('input', (e) => {
+                if (e.target.type === 'number' && e.target.value < 0) {
+                    e.target.value = 0;
+                }
+            });
+
             document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); });
             document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden'); });
 
@@ -1100,21 +1213,25 @@
 
                 if (state.onboardingStep === 0) {
                     state.player.name = document.getElementById('name').value.trim();
-                }
-
-                if (state.onboardingStep === 2) {
-                    state.player.baseline.pushups = parseInt(document.getElementById('pushups').value) || 0;
-                    state.player.baseline.situps = parseInt(document.getElementById('situps').value) || 0;
-                    state.player.baseline.squats = parseInt(document.getElementById('squats').value) || 0;
-                    state.player.baseline.run = parseFloat(document.getElementById('run').value) || 0;
-                    state.player.baseline.burpees = parseInt(document.getElementById('burpees').value) || 0;
-                    state.player.baseline.plank = parseInt(document.getElementById('plank').value) || 0;
-                    state.player.baseline.stretching = parseInt(document.getElementById('stretching').value) || 0;
+                } else if (state.onboardingStep === 2) {
+                    Object.keys(state.player.baseline).forEach(key => {
+                        const input = document.getElementById(key);
+                        if(input) {
+                            state.player.baseline[key] = parseFloat(input.value) || 0;
+                        }
+                    });
 
                     await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-scroll mr-2"></i>Notice</h2><p class="text-xl mb-8 font-semibold text-white">[ A Daily Quest has arrived. ]</p>`, 2500);
                     switchPage('app');
                     renderAppScreen();
-                } else {
+                    
+                    // Start tutorial after the first login
+                    if (!state.player.hasCompletedTutorial) {
+                        setTimeout(startTutorial, 500);
+                    }
+                } 
+                
+                if (state.onboardingStep < 2) {
                     state.onboardingStep++;
                     renderOnboardingStep();
                 }
@@ -1173,8 +1290,11 @@
                     e.preventDefault();
                     pages.app.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
                     e.currentTarget.classList.add('active');
-                    state.currentAppScreen = e.currentTarget.hash.substring(1);
-                    renderAppScreen();
+                    const newScreen = e.currentTarget.hash.substring(1);
+                    if (newScreen !== state.currentAppScreen) {
+                        state.currentAppScreen = newScreen;
+                        renderAppScreen();
+                    }
                 });
             });
 
@@ -1186,6 +1306,108 @@
             document.getElementById('accept-button').addEventListener('click', () => {
                 switchPage('login');
             });
+
+            // --- TUTORIAL LOGIC ---
+            const tutorialOverlay = document.getElementById('tutorial-overlay');
+            const tutorialBox = document.getElementById('tutorial-box');
+            const tutorialText = document.getElementById('tutorial-text');
+            const tutorialNextBtn = document.getElementById('tutorial-next');
+            let tutorialStep = 0;
+            let highlightedElement = null;
+
+            const tutorialSteps = [
+                { text: "System Initializing... Welcome, Player. Let's begin your orientation." },
+                { element: '#tutorial-profile-main', text: "This is your Status screen. Track your Level, XP, and evolving Title here. This is the core of your progression." },
+                { element: '#tutorial-profile-stats', text: "These are your core stats. As you level up, you'll earn Ability Points to increase them and grow stronger." },
+                { element: '#daily-quest-container', text: "Your Daily Quests are your primary mission. Complete them every day to earn XP and Gold. Consistency is key to improving your baseline." },
+                { action: () => navigateToAppScreen('quests'), element: '#tutorial-quest-tabs', text: "The Quests tab contains your long-term goals. Check here for Weekly, Main, and high-risk Dungeon quests." },
+                { action: () => navigateToAppScreen('inventory'), element: '#tutorial-inventory', text: "Your Inventory stores all the items you earn and purchase, like Dungeon Keys for special quests." },
+                { action: () => navigateToAppScreen('shop'), element: '#tutorial-shop-balance', text: "Use Gold earned from quests in the Shop to buy powerful items and boosts." },
+                { action: () => navigateToAppScreen('journal'), element: '#tutorial-journal', text: "Finally, the Journal rewards reflection. Write about your day to earn extra XP and Gold, and maybe even find a surprise." },
+                { action: () => navigateToAppScreen('profile'), text: "Your orientation is complete. The system is yours. Begin your ascent." }
+            ];
+
+            function navigateToAppScreen(screen) {
+                document.querySelector(`.nav-item[href="#${screen}"]`).click();
+            }
+
+            function startTutorial() {
+                tutorialStep = 0;
+                tutorialOverlay.classList.add('active');
+                showTutorialStep();
+            }
+
+            function showTutorialStep() {
+                if (highlightedElement) {
+                    highlightedElement.classList.remove('tutorial-highlight');
+                    highlightedElement = null;
+                }
+
+                if (tutorialStep >= tutorialSteps.length) {
+                    endTutorial();
+                    return;
+                }
+
+                const step = tutorialSteps[tutorialStep];
+                
+                const performStep = () => {
+                    tutorialText.textContent = step.text;
+                    
+                    if (step.element) {
+                        highlightedElement = document.querySelector(step.element);
+                        if (highlightedElement) {
+                            highlightedElement.classList.add('tutorial-highlight');
+                            const rect = highlightedElement.getBoundingClientRect();
+                            tutorialBox.style.top = `${rect.bottom + 15}px`;
+                            tutorialBox.style.left = `50%`;
+                            tutorialBox.style.transform = `translateX(-50%)`;
+
+                             // Adjust if tooltip goes off-screen
+                            const boxRect = tutorialBox.getBoundingClientRect();
+                            if (boxRect.bottom > window.innerHeight - 20) {
+                                tutorialBox.style.top = `${rect.top - boxRect.height - 15}px`;
+                            }
+                            if (boxRect.left < 10) {
+                                tutorialBox.style.left = '10px';
+                                tutorialBox.style.transform = 'translateX(0)';
+                            }
+                             if (boxRect.right > window.innerWidth - 10) {
+                                tutorialBox.style.left = `${window.innerWidth - 10}px`;
+                                tutorialBox.style.transform = 'translateX(-100%)';
+                            }
+                        }
+                    } else {
+                        tutorialBox.style.top = `50%`;
+                        tutorialBox.style.left = `50%`;
+                        tutorialBox.style.transform = `translate(-50%, -50%)`;
+                    }
+                    
+                    if(tutorialStep === tutorialSteps.length -1) {
+                         tutorialNextBtn.textContent = 'Begin';
+                    }
+                }
+
+                if (step.action) {
+                    step.action();
+                    setTimeout(performStep, 400); // Wait for screen transition
+                } else {
+                    performStep();
+                }
+            }
+
+            function endTutorial() {
+                tutorialOverlay.classList.remove('active');
+                if (highlightedElement) {
+                    highlightedElement.classList.remove('tutorial-highlight');
+                }
+                state.player.hasCompletedTutorial = true;
+            }
+
+            tutorialNextBtn.addEventListener('click', () => {
+                tutorialStep++;
+                showTutorialStep();
+            });
+
         });
     </script>
 </body>
