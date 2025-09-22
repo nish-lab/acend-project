@@ -211,7 +211,7 @@
         #tutorial-overlay {
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.6); /* Made the overlay lighter */
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.5s ease;
@@ -241,7 +241,7 @@
         .tutorial-highlight {
             position: relative;
             z-index: 1001;
-            box-shadow: 0 0 0 9999px rgba(0,0,0,0.7), 0 0 15px 5px #9fcdff;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 15px 5px #9fcdff; /* Made the highlight overlay lighter */
             transition: box-shadow 0.5s ease;
         }
     </style>
@@ -1358,20 +1358,25 @@
                         if (highlightedElement) {
                             highlightedElement.classList.add('tutorial-highlight');
                             const rect = highlightedElement.getBoundingClientRect();
+                            
+                            // Default position: below
                             tutorialBox.style.top = `${rect.bottom + 15}px`;
                             tutorialBox.style.left = `50%`;
                             tutorialBox.style.transform = `translateX(-50%)`;
 
-                             // Adjust if tooltip goes off-screen
+                             // Check if tooltip goes off-screen vertically and reposition to top if needed
                             const boxRect = tutorialBox.getBoundingClientRect();
                             if (boxRect.bottom > window.innerHeight - 20) {
                                 tutorialBox.style.top = `${rect.top - boxRect.height - 15}px`;
                             }
-                            if (boxRect.left < 10) {
+
+                            // Horizontal adjustments
+                            const finalBoxRect = tutorialBox.getBoundingClientRect();
+                            if (finalBoxRect.left < 10) {
                                 tutorialBox.style.left = '10px';
                                 tutorialBox.style.transform = 'translateX(0)';
                             }
-                             if (boxRect.right > window.innerWidth - 10) {
+                             if (finalBoxRect.right > window.innerWidth - 10) {
                                 tutorialBox.style.left = `${window.innerWidth - 10}px`;
                                 tutorialBox.style.transform = 'translateX(-100%)';
                             }
