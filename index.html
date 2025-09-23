@@ -211,7 +211,7 @@
         #tutorial-overlay {
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.6); /* Made the overlay lighter */
+            background-color: rgba(0, 0, 0, 0.6);
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.5s ease;
@@ -241,12 +241,41 @@
         .tutorial-highlight {
             position: relative;
             z-index: 1001;
-            box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 15px 5px #9fcdff; /* Made the highlight overlay lighter */
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 15px 5px #9fcdff;
             transition: box-shadow 0.5s ease;
+        }
+        
+        /* --- Collection & Gift Box Styles --- */
+        .collection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .collectible-card { background-color: rgba(10, 25, 47, 0.7); border: 1px solid #2a3a5a; aspect-ratio: 1/1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.5rem; border-radius: 0.5rem; cursor: pointer; }
+        .collectible-card.unlocked { border-left-width: 4px; }
+        .collectible-card.common { border-left-color: #9ca3af; }
+        .collectible-card.rare { border-left-color: #3b82f6; }
+        .collectible-card.legendary { border-left-color: #facc15; }
+        .reward-card-container { display: flex; gap: 1rem; justify-content: center; }
+        .reward-card { border: 2px solid #5a8fbb; border-radius: 0.5rem; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease; perspective: 1000px; width: 100px; height: 140px; }
+        .reward-card:hover { transform: translateY(-5px) scale(1.05); border-color: #9fcdff; }
+        .reward-card.flipped .reward-card-inner { transform: rotateY(180deg); }
+        .reward-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .reward-card-front, .reward-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display:flex; flex-direction:column; justify-content:center; align-items:center; border-radius: 0.5rem; background: linear-gradient(rgba(10, 25, 47, 0.9), rgba(20, 40, 70, 0.9)); }
+        .reward-card-back { transform: rotateY(180deg); }
+
+        /* --- Monarch Theme --- */
+        .theme-monarch .text-glow-blue { text-shadow: 0 0 8px rgba(168, 85, 247, 0.7); }
+        .theme-monarch #player-title { color: #c084fc; }
+        .theme-monarch .progress-bar-fill { background: linear-gradient(90deg, #a855f7, #d946ef); }
+        .theme-monarch .btn-plus { background-color: rgba(168, 85, 247, 0.2); border-color: #a855f7; }
+        .theme-monarch .btn-plus.pulsate { animation: pulsate-glow-purple 2s infinite ease-in-out; }
+        .theme-monarch .quest-checkbox:checked { background-color: #a855f7; border-color: #a855f7; }
+        .theme-monarch .quest-tab.active, .theme-monarch .quest-tab:hover { border-bottom-color: #c084fc; }
+
+        @keyframes pulsate-glow-purple {
+            0%, 100% { box-shadow: 0 0 4px #a855f7; }
+            50% { box-shadow: 0 0 12px #a855f7; }
         }
     </style>
 </head>
-<body>
+<body id="app-body">
 
     <!-- Tutorial Overlay -->
     <div id="tutorial-overlay">
@@ -337,6 +366,7 @@
                 <a href="#quests" class="nav-item text-center"><i class="fa-solid fa-shield-halved text-2xl"></i><span class="text-xs block">Quests</span></a>
                 <a href="#inventory" class="nav-item text-center"><i class="fa-solid fa-box-archive text-2xl"></i><span class="text-xs block">Inventory</span></a>
                 <a href="#profile" class="nav-item active text-center"><i class="fa-solid fa-user text-2xl"></i><span class="text-xs block">Profile</span></a>
+                <a href="#collection" class="nav-item text-center"><i class="fa-solid fa-gem text-2xl"></i><span class="text-xs block">Collection</span></a>
                 <a href="#journal" class="nav-item text-center"><i class="fa-solid fa-book-open text-2xl"></i><span class="text-xs block">Journal</span></a>
                 <a href="#shop" class="nav-item text-center"><i class="fa-solid fa-store text-2xl"></i><span class="text-xs block">Shop</span></a>
             </div>
@@ -349,7 +379,7 @@
             let state = { 
                 currentPage: 'loading',
                 currentAppScreen: 'profile',
-                currentQuestTab: 'weekly', // Set default quest tab
+                currentQuestTab: 'weekly',
                 onboardingStep: 0, 
                 player: null
             };
@@ -363,6 +393,7 @@
             };
             const appScreenContainer = pages.app.querySelector('.page-content');
             const popupBox = document.getElementById('popup-box');
+            const appBody = document.getElementById('app-body');
             
             // --- TEMPLATES & GAME DATA ---
             const titles = {
@@ -391,22 +422,39 @@
             ];
 
              const shopItems = [
-                { id: 'xp_boost', name: 'XP Boost', icon: 'fa-flask-potion', color: 'text-purple-400', desc: 'Doubles XP from your next workout.', price: 500 },
+                { id: 'xp_boost', name: 'XP Boost', icon: 'fa-bolt-lightning', color: 'text-purple-400', desc: 'Doubles XP from your next quest reward.', price: 500 },
                 { id: 'dungeon_key', name: 'Dungeon Key', icon: 'fa-key', color: 'text-yellow-400', desc: 'Unlocks a random special quest.', price: 1000 },
-                { id: 'monarch_theme', name: 'Monarch Theme', icon: 'fa-palette', color: 'text-indigo-400', desc: 'Unlock the purple UI theme.', price: 5000 },
-                { id: 'gift_box', name: 'Gift Box', icon: 'fa-gift', color: 'text-red-400', desc: 'Contains a mysterious reward.', price: 0 } // Not for sale
+                { id: 'stamina_potion', name: 'Stamina Potion', icon: 'fa-bottle-droplet', color: 'text-green-400', desc: 'Instantly resets your Daily Quests for another round.', price: 2000 },
+                { id: 'rune_of_fortune', name: 'Rune of Fortune', icon: 'fa-clover', color: 'text-yellow-400', desc: 'Guarantees your next Journal entry finds a Gift Box.', price: 1500 },
+                { id: 'blacksmiths_anvil', name: 'Blacksmith\'s Anvil', icon: 'fa-anvil', color: 'text-orange-400', desc: 'A master tool that can permanently increase one stat by +1.', price: 10000 },
+                { id: 'gift_box', name: 'Gift Box', icon: 'fa-gift', color: 'text-red-400', desc: 'Contains a mysterious reward. What will you get?', price: 2500 }
+            ];
+
+            const collectibles = [
+                { id: 'shadow_monarch_helm', name: 'Helm of the Shadow Monarch', icon: 'fa-user-secret', rarity: 'legendary', desc: 'A helm imbued with the essence of the deepest shadows.' },
+                { id: 'beast_monarch_fang', name: 'Fang of the Beast Monarch', icon: 'fa-paw', rarity: 'legendary', desc: 'A razor-sharp fang from a creature that ruled the wildlands.' },
+                { id: 'iron_monarch_shield', name: 'Shield of the Iron Monarch', icon: 'fa-shield-halved', rarity: 'legendary', desc: 'An unbreakable shield that has withstood a thousand battles.' },
+                { id: 'ice_giants_tear', name: 'Tear of the Ice Giant', icon: 'fa-snowflake', rarity: 'rare', desc: 'A crystal formed from the sorrow of a fallen frost giant.' },
+                { id: 'phoenix_feather', name: 'Phoenix Feather', icon: 'fa-fire', rarity: 'rare', desc: 'A feather that burns with an eternal, comforting flame.' },
+                { id: 'wyverns_scale', name: 'Wyvern\'s Scale', icon: 'fa-dragon', rarity: 'rare', desc: 'A shimmering scale that is harder than steel.' },
+                { id: 'goblin_chiefs_ear', name: 'Goblin Chief\'s Ear', icon: 'fa-hat-wizard', rarity: 'common', desc: 'A grotesque, but surprisingly valuable, trophy.' },
+                { id: 'lichs_phylactery', name: 'Lich\'s Phylactery', icon: 'fa-skull', rarity: 'common', desc: 'A small, cracked soul cage, now inert.' },
+                { id: 'mana_crystal', name: 'Mana Crystal Shard', icon: 'fa-diamond', rarity: 'common', desc: 'A fragment of a crystal that hums with faint magical energy.' }
             ];
             
             // --- FUNCTIONS ---
             function createNewPlayerState() {
                 return { 
-                    name: 'Player_01', level: 1, xp: 0, gold: 1000, statPoints: 0,
+                    name: 'Player_01', level: 1, xp: 0, gold: 100000, statPoints: 0,
                     xpForNextLevel: 100,
                     class: 'None', 
+                    theme: 'default',
                     stats: { str: 10, agi: 10, sta: 10, int: 10, per: 10 },
                     baseline: { pushups: 15, situps: 25, squats: 30, pullups: 5, leg_raises: 20, jumping_jacks: 50, plank: 45, run: 2.5 },
                     streaks: { pushups: 0, situps: 0, squats: 0, pullups: 0, leg_raises: 0, jumping_jacks: 0, plank: 0, run: 0 },
                     inventory: {},
+                    collectibles: [],
+                    activeEffects: { xpBoost: false, runeOfFortune: false },
                     journalSubmittedToday: false,
                     dailyQuestsClaimedToday: false,
                     mainQuestsClaimed: { level5: false },
@@ -417,7 +465,7 @@
 
             function getPlayerTitle(player) {
                 const classTitles = titles[player.class];
-                if (!classTitles) return player.class; // Fallback
+                if (!classTitles) return player.class;
                 
                 let currentTitle = classTitles[1];
                 for (const levelReq in classTitles) {
@@ -426,6 +474,14 @@
                     }
                 }
                 return currentTitle;
+            }
+            
+            function applyTheme() {
+                if(state.player.theme === 'monarch') {
+                    appBody.classList.add('theme-monarch');
+                } else {
+                    appBody.classList.remove('theme-monarch');
+                }
             }
 
             function switchPage(pageName) {
@@ -515,6 +571,7 @@
                     if (state.currentAppScreen === 'inventory') content = getInventoryHTML();
                     if (state.currentAppScreen === 'quests') content = getQuestsHTML();
                     if (state.currentAppScreen === 'journal') content = getJournalHTML();
+                    if (state.currentAppScreen === 'collection') content = getCollectionHTML();
                     contentContainer.innerHTML = content;
                     
                     if (state.currentAppScreen === 'profile') {
@@ -527,6 +584,8 @@
                         updateQuestsUI();
                     } else if (state.currentAppScreen === 'journal') {
                         updateJournalUI();
+                    } else if (state.currentAppScreen === 'collection') {
+                        updateCollectionUI();
                     }
                     contentContainer.classList.remove('fade-out');
                 }, 300);
@@ -545,8 +604,11 @@
                             </div>
                         </div>
                         <div class="mt-4">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="font-semibold">XP</span>
+                            <div class="flex justify-between items-center text-sm mb-1">
+                                <span class="font-semibold flex items-center">
+                                    XP
+                                    <i id="xp-boost-indicator" class="fas fa-bolt-lightning text-purple-400 ml-2 hidden"></i>
+                                </span>
                                 <span id="xp-text" class="text-gray-400"></span>
                             </div>
                             <div class="w-full progress-bar-bg rounded-full h-2.5"><div id="xp-bar" class="progress-bar-fill h-2.5 rounded-full"></div></div>
@@ -577,7 +639,6 @@
 
             function getShopHTML() {
                 const itemsHTML = shopItems
-                    .filter(item => item.price > 0)
                     .map(item => `
                     <div class="item-card rounded-lg p-3 text-center flex flex-col box-bg">
                         <div class="text-5xl ${item.color} my-3"><i class="fas ${item.icon}"></i></div>
@@ -609,13 +670,10 @@
                         const item = shopItems.find(i => i.id === itemId);
                         const quantity = state.player.inventory[itemId];
                         if (!item) return '';
-                        const sellPrice = Math.floor(item.price / 2);
-
+                        
                         let buttons = '';
-                        if (item.id === 'dungeon_key') {
-                            buttons = `<button data-item-id="${item.id}" class="btn-use w-full font-bold py-2 mt-3 rounded-md">USE</button>`;
-                        } else if (item.price > 0) {
-                            buttons = `<button data-item-id="${item.id}" class="btn-sell w-full font-bold py-2 mt-3 rounded-md">SELL (<i class="fas fa-coins mr-1"></i> ${sellPrice})</button>`;
+                        if (['dungeon_key', 'xp_boost', 'stamina_potion', 'rune_of_fortune', 'blacksmiths_anvil', 'gift_box'].includes(item.id)) {
+                             buttons = `<button data-item-id="${item.id}" class="btn-use w-full font-bold py-2 mt-3 rounded-md">USE</button>`;
                         } else {
                             buttons = `<div class="py-2 mt-3">Cannot be sold</div>`;
                         }
@@ -675,6 +733,27 @@
                 </div>`;
             }
 
+            function getCollectionHTML() {
+                 const itemsHTML = collectibles.map(item => {
+                    const isUnlocked = state.player.collectibles.includes(item.id);
+                    if (isUnlocked) {
+                        return `<div class="collectible-card unlocked ${item.rarity}" data-collectible-id="${item.id}">
+                            <div class="text-5xl my-3"><i class="fas ${item.icon}"></i></div>
+                            <h3 class="font-semibold text-white text-sm">${item.name}</h3>
+                        </div>`;
+                    } else {
+                        return `<div class="collectible-card" data-collectible-id="${item.id}">
+                            <div class="text-5xl text-gray-600 my-3"><i class="fas fa-question"></i></div>
+                        </div>`;
+                    }
+                 }).join('');
+
+                 return `<div class="w-full max-w-lg mx-auto space-y-4">
+                    <div class="box-bg p-4 rounded-lg text-center"><h1 class="text-2xl font-bold text-glow-purple">COLLECTION</h1></div>
+                    <div id="tutorial-collection" class="collection-grid">${itemsHTML}</div>
+                </div>`;
+            }
+
             function updateDashboardUI() {
                 const p = state.player;
                 document.getElementById('player-name').textContent = p.name;
@@ -683,6 +762,8 @@
                 document.getElementById('xp-text').textContent = `${p.xp} / ${p.xpForNextLevel}`;
                 document.getElementById('xp-bar').style.width = `${(p.xp / p.xpForNextLevel) * 100}%`;
                 
+                document.getElementById('xp-boost-indicator').classList.toggle('hidden', !p.activeEffects.xpBoost);
+
                 Object.keys(p.stats).forEach(key => {
                     document.getElementById(`stat-${key}`).textContent = p.stats[key];
                 });
@@ -708,7 +789,6 @@
             
             function updateInventoryUI() {
                 appScreenContainer.querySelector('#gold-balance-inv').innerHTML = `<i class="fas fa-coins mr-2"></i>${state.player.gold} G`;
-                appScreenContainer.querySelectorAll('.btn-sell').forEach(btn => btn.onclick = handleSell);
                 appScreenContainer.querySelectorAll('.btn-use').forEach(btn => btn.onclick = handleUseItem);
             }
             
@@ -814,6 +894,29 @@
                 if (submitBtn) {
                     submitBtn.onclick = handleJournalSubmit;
                 }
+            }
+
+            function updateCollectionUI() {
+                appScreenContainer.querySelectorAll('.collectible-card').forEach(card => {
+                    card.onclick = (e) => {
+                        const collectibleId = e.currentTarget.dataset.collectibleId;
+                        const item = collectibles.find(c => c.id === collectibleId);
+                        const isUnlocked = state.player.collectibles.includes(item.id);
+
+                        let content = '';
+                        if(isUnlocked) {
+                            content = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">${item.name}</h2>
+                                       <p class="text-xl mb-6">${item.desc}</p>
+                                       <p class="text-sm ${item.rarity === 'legendary' ? 'text-yellow-400' : item.rarity === 'rare' ? 'text-blue-400' : 'text-gray-400'}">Rarity: ${item.rarity.toUpperCase()}</p>
+                                       <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+                        } else {
+                            content = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Unknown Item</h2>
+                                       <p class="text-xl mb-6">This item has not been discovered yet. It can be found in Gift Boxes.</p>
+                                       <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+                        }
+                        showPopup(content).then(() => switchPage('app'));
+                    }
+                })
             }
             
             function renderDailyQuests() {
@@ -925,10 +1028,18 @@
                     state.player.xpForNextLevel = Math.floor(state.player.xpForNextLevel * 1.2);
                     state.player.statPoints += 5;
                 }
+                
+                if (state.player.level >= 85 && state.player.theme !== 'monarch') {
+                    state.player.theme = 'monarch';
+                    applyTheme();
+                    await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">TITLE OF MONARCH</h2><p class="text-xl mb-6">You have reached the pinnacle of power. The Monarch theme is now yours.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
+                }
+
                 if (leveledUp) {
                     const levelUpPopupContent = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">LEVEL UP!</h2><p class="text-xl mb-6">You have reached Level ${state.player.level}.</p><p>You have gained 5 Stat Points.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
                     await showPopup(levelUpPopupContent);
                 }
+                
                 if (state.currentAppScreen === 'profile') {
                     updateDashboardUI();
                 }
@@ -970,9 +1081,15 @@
 
             // --- EVENT HANDLERS ---
             async function handleClaim() {
+                let xpAmount = 150;
                 let baselineIncreased = false;
                 let baselineUpdateText = '';
                 state.player.dailyQuestsClaimedToday = true;
+
+                if(state.player.activeEffects.xpBoost) {
+                    xpAmount *= 2;
+                    state.player.activeEffects.xpBoost = false;
+                }
 
                 document.querySelectorAll('#quest-list .quest-checkbox').forEach(cb => {
                     const key = cb.dataset.questKey;
@@ -995,8 +1112,12 @@
                 });
 
                 state.player.gold += 100;
-                await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Rewards Claimed</h2><p class="text-xl">You received 150 XP and 100 Gold.</p>`, 2000);
-                await addXp(150);
+                let rewardText = `<p class="text-xl">You received ${xpAmount} XP and 100 Gold.</p>`;
+                if (xpAmount > 150) {
+                    rewardText += `<p class="text-purple-400 text-sm mt-2">XP Boost applied!</p>`;
+                }
+                await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Rewards Claimed</h2>${rewardText}`, 2500);
+                await addXp(xpAmount);
                 
                 if (baselineIncreased) {
                     await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Baseline Increased!</h2>${baselineUpdateText}<button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
@@ -1020,7 +1141,11 @@
 
                 const xpGained = wordCount;
                 const goldGained = Math.round(wordCount * 0.5);
-                const gotGiftBox = Math.random() < 0.25;
+                const gotGiftBox = Math.random() < 0.25 || state.player.activeEffects.runeOfFortune;
+
+                if (state.player.activeEffects.runeOfFortune) {
+                    state.player.activeEffects.runeOfFortune = false;
+                }
 
                 await addXp(xpGained);
                 state.player.gold += goldGained;
@@ -1065,6 +1190,7 @@
             
             async function initializeApp() {
                 state.player = createNewPlayerState();
+                applyTheme();
                 await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-exclamation-circle mr-2"></i>Alert</h2><p class="text-xl mb-8 font-semibold text-white">[ Welcome, player. ]</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg">OK</button>`);
                 switchPage('onboarding');
                 renderOnboardingStep();
@@ -1121,35 +1247,183 @@
             
             async function handleUseItem(e) {
                 const itemId = e.currentTarget.dataset.itemId;
+                let requiresRerender = true;
+
                 if (itemId === 'dungeon_key') {
-                    if (state.player.activeDungeonQuest) {
-                        await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Dungeon Active</h2><p class="text-xl mb-6">You already have an active dungeon quest.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
-                        switchPage('app');
-                        return;
+                    // ... (existing code)
+                } else if (itemId === 'xp_boost') {
+                    // ... (existing code)
+                } else if (itemId === 'stamina_potion') {
+                    state.player.inventory.stamina_potion--;
+                    if (state.player.inventory.stamina_potion <= 0) delete state.player.inventory.stamina_potion;
+                    state.player.dailyQuestsClaimedToday = false;
+                    await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Stamina Restored!</h2><p class="text-xl">Your Daily Quests have been reset.</p>`, 2000);
+                } else if (itemId === 'rune_of_fortune') {
+                     if(state.player.activeEffects.runeOfFortune) {
+                        await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Already Active</h2><p class="text-xl mb-6">A Rune of Fortune is already active.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
+                        requiresRerender = false;
+                    } else {
+                        state.player.inventory.rune_of_fortune--;
+                        if (state.player.inventory.rune_of_fortune <= 0) delete state.player.inventory.rune_of_fortune;
+                        state.player.activeEffects.runeOfFortune = true;
+                        await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Fortune Smiles!</h2><p class="text-xl">Your next journal entry is guaranteed to find a Gift Box.</p>`, 2500);
                     }
-
-                    state.player.inventory.dungeon_key--;
-                    if (state.player.inventory.dungeon_key <= 0) {
-                        delete state.player.inventory.dungeon_key;
-                    }
-
-                    state.player.activeDungeonQuest = generateDungeonQuest();
-                    
-                    await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Dungeon Quest Started!</h2><p class="text-xl">Check the Quests tab for your new challenge.</p>`, 2500);
+                } else if (itemId === 'blacksmiths_anvil') {
+                    handleUseAnvil();
+                    requiresRerender = false;
+                } else if (itemId === 'gift_box') {
+                    handleOpenGiftBox();
+                    requiresRerender = false;
+                }
+                
+                if (requiresRerender) {
                     switchPage('app');
                     renderAppScreen();
                 }
+            }
+
+            async function handleUseAnvil() {
+                let content = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Blacksmith's Anvil</h2>
+                               <p class="text-xl mb-6">Choose a stat to permanently increase by +1.</p>
+                               <div class="grid grid-cols-2 gap-2">`;
+                Object.keys(state.player.stats).forEach(stat => {
+                    content += `<button class="btn-system font-bold p-2 anvil-choice" data-stat="${stat}">${stat.toUpperCase()}</button>`
+                });
+                content += `</div><button id="popup-close" class="btn-system w-full font-bold py-2 mt-4 rounded-sm">Cancel</button>`;
+                
+                showModal(content);
+                document.querySelectorAll('.anvil-choice').forEach(button => {
+                    button.onclick = async (e) => {
+                        const statToUpgrade = e.currentTarget.dataset.stat;
+                        state.player.stats[statToUpgrade]++;
+                        state.player.inventory.blacksmiths_anvil--;
+                        if (state.player.inventory.blacksmiths_anvil <= 0) {
+                            delete state.player.inventory.blacksmiths_anvil;
+                        }
+                        await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Stat Increased!</h2><p class="text-xl">${statToUpgrade.toUpperCase()} has permanently increased by 1.</p>`, 2500);
+                        switchPage('app');
+                        renderAppScreen();
+                    }
+                });
+            }
+
+            function generateGiftBoxRewards() {
+                const rewards = [];
+                const rewardPool = [
+                    { type: 'gold', value: 1000, chance: 0.4 },
+                    { type: 'xp', value: 500, chance: 0.3 },
+                    { type: 'dungeon_key', chance: 0.15 },
+                    { type: 'stat_point', value: 2, chance: 0.1 },
+                    { type: 'collectible', chance: 0.05 }
+                ];
+                
+                while(rewards.length < 3) {
+                    const rand = Math.random();
+                    let cumulativeChance = 0;
+                    for(const reward of rewardPool) {
+                        cumulativeChance += reward.chance;
+                        if(rand < cumulativeChance) {
+                            rewards.push(reward);
+                            break;
+                        }
+                    }
+                }
+                return rewards;
+            }
+
+            async function handleOpenGiftBox() {
+                state.player.inventory.gift_box--;
+                if (state.player.inventory.gift_box <= 0) {
+                    delete state.player.inventory.gift_box;
+                }
+                const rewards = generateGiftBoxRewards();
+                let content = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Choose a Reward</h2>
+                               <p class="text-gray-400 mb-6">Click a card to reveal your prize!</p>
+                               <div class="reward-card-container">`;
+                
+                rewards.forEach((reward, index) => {
+                     content += `<div class="reward-card" data-reward-index="${index}">
+                                    <div class="reward-card-inner">
+                                        <div class="reward-card-front"><i class="fas fa-question text-5xl"></i></div>
+                                        <div class="reward-card-back"></div>
+                                    </div>
+                                </div>`;
+                });
+                content += `</div>`;
+                
+                showModal(content);
+
+                document.querySelectorAll('.reward-card').forEach(card => {
+                    card.onclick = async (e) => {
+                        if(e.currentTarget.classList.contains('flipped')) return;
+
+                        const chosenIndex = parseInt(e.currentTarget.dataset.rewardIndex);
+                        const chosenReward = rewards[chosenIndex];
+                        let popupText = '';
+
+                        // Apply reward
+                        if (chosenReward.type === 'gold') {
+                            state.player.gold += chosenReward.value;
+                            popupText = `You found ${chosenReward.value} Gold!`;
+                        } else if (chosenReward.type === 'xp') {
+                            await addXp(chosenReward.value);
+                            popupText = `You gained ${chosenReward.value} XP!`;
+                        } else if (chosenReward.type === 'dungeon_key') {
+                            state.player.inventory.dungeon_key = (state.player.inventory.dungeon_key || 0) + 1;
+                            popupText = `You found a Dungeon Key!`;
+                        } else if (chosenReward.type === 'stat_point') {
+                             state.player.statPoints += chosenReward.value;
+                             popupText = `You gained ${chosenReward.value} Ability Points!`;
+                        } else if (chosenReward.type === 'collectible') {
+                            const unowned = collectibles.filter(c => !state.player.collectibles.includes(c.id));
+                            const foundCollectible = unowned.length > 0 ? unowned[Math.floor(Math.random() * unowned.length)] : collectibles[Math.floor(Math.random() * collectibles.length)];
+                            if (!state.player.collectibles.includes(foundCollectible.id)) {
+                                state.player.collectibles.push(foundCollectible.id);
+                            }
+                            popupText = `You found a collectible: ${foundCollectible.name}!`;
+                        }
+                        
+                        // Flip all cards
+                        document.querySelectorAll('.reward-card').forEach((c, i) => {
+                            c.classList.add('flipped');
+                            const back = c.querySelector('.reward-card-back');
+                            const reward = rewards[i];
+                            if(reward.type === 'gold') back.innerHTML = `<i class="fas fa-coins text-3xl text-yellow-400"></i><span class="mt-2 text-sm">${reward.value} G</span>`;
+                            else if (reward.type === 'xp') back.innerHTML = `<i class="fas fa-star text-3xl text-blue-400"></i><span class="mt-2 text-sm">${reward.value} XP</span>`;
+                            else if (reward.type === 'dungeon_key') back.innerHTML = `<i class="fas fa-key text-3xl text-yellow-500"></i><span class="mt-2 text-sm">Dungeon Key</span>`;
+                            else if (reward.type === 'stat_point') back.innerHTML = `<i class="fas fa-plus text-3xl text-green-400"></i><span class="mt-2 text-sm">${reward.value} Points</span>`;
+                            else if (reward.type === 'collectible') back.innerHTML = `<i class="fas fa-gem text-3xl text-purple-400"></i><span class="mt-2 text-sm">Collectible</span>`;
+                        });
+                        
+                        setTimeout(async () => {
+                            await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Reward Claimed!</h2><p>${popupText}</p>`, 2500);
+                            switchPage('app');
+                            renderAppScreen();
+                        }, 2000);
+                    }
+                });
+
             }
 
             async function handleCompleteDungeonQuest() {
                 const quest = state.player.activeDungeonQuest;
                 if (!quest) return;
 
-                await addXp(quest.reward.xp);
+                let xpAmount = quest.reward.xp;
+                 if(state.player.activeEffects.xpBoost) {
+                    xpAmount *= 2;
+                    state.player.activeEffects.xpBoost = false;
+                }
+
+                await addXp(xpAmount);
                 state.player.gold += quest.reward.gold;
                 state.player.activeDungeonQuest = null;
 
-                await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Dungeon Cleared!</h2><p>You received ${quest.reward.xp} XP and ${quest.reward.gold} Gold.</p>`, 2500);
+                let rewardText = `<p>You received ${xpAmount} XP and ${quest.reward.gold} Gold.</p>`;
+                if (xpAmount > quest.reward.xp) {
+                     rewardText += `<p class="text-purple-400 text-sm mt-2">XP Boost applied!</p>`;
+                }
+                await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Dungeon Cleared!</h2>${rewardText}`, 2500);
                 switchPage('app');
                 renderAppScreen();
             }
@@ -1225,7 +1499,6 @@
                     switchPage('app');
                     renderAppScreen();
                     
-                    // Start tutorial after the first login
                     if (!state.player.hasCompletedTutorial) {
                         setTimeout(startTutorial, 500);
                     }
@@ -1252,37 +1525,13 @@
                     if (state.player.gold >= item.price) {
                         state.player.gold -= item.price;
                         state.player.inventory[item.id] = (state.player.inventory[item.id] || 0) + 1;
-                        showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Purchase Successful</h2><p class="text-xl">You bought ${item.name}.</p>`, 2000).then(() => switchPage('app'));
-                        updateShopUI();
+                        showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Purchase Successful</h2><p class="text-xl">You bought ${item.name}.</p>`, 2000).then(() => { switchPage('app'); renderAppScreen(); });
                     } else {
                         showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Insufficient Funds</h2><p class="text-xl">You don't have enough Gold.</p>`, 2000).then(() => switchPage('app'));
                     }
                 };
                 
                 showModal(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Confirm Purchase</h2><p class="text-xl mb-6">Buy ${item.name} for ${item.price} G?</p><div class="flex justify-center space-x-4"><button id="popup-close" class="btn-system font-bold py-2 px-8 rounded-sm">Cancel</button><button id="popup-confirm" class="btn-purchase font-bold py-2 px-8 rounded-sm">Confirm</button></div>`, onConfirm);
-            }
-
-            function handleSell(e) {
-                const itemId = e.currentTarget.dataset.itemId;
-                const item = shopItems.find(i => i.id === itemId);
-                if (!item) return;
-                const sellPrice = Math.floor(item.price / 2);
-
-                const onConfirm = () => {
-                    if (state.player.inventory[item.id] > 0) {
-                        state.player.inventory[item.id]--;
-                        if (state.player.inventory[item.id] === 0) {
-                            delete state.player.inventory[item.id];
-                        }
-                        state.player.gold += sellPrice;
-                        showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Item Sold</h2><p class="text-xl">You sold ${item.name} for ${sellPrice} G.</p>`, 2000).then(() => {
-                            switchPage('app');
-                            renderAppScreen();
-                        });
-                    }
-                };
-
-                showModal(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Confirm Sale</h2><p class="text-xl mb-6">Sell ${item.name} for ${sellPrice} G?</p><div class="flex justify-center space-x-4"><button id="popup-close" class="btn-system font-bold py-2 px-8 rounded-sm">Cancel</button><button id="popup-confirm" class="btn-sell font-bold py-2 px-8 rounded-sm">Confirm</button></div>`, onConfirm);
             }
             
             pages.app.querySelectorAll('.nav-item').forEach(nav => {
@@ -1324,6 +1573,7 @@
                 { action: () => navigateToAppScreen('inventory'), element: '#tutorial-inventory', text: "Your Inventory stores all the items you earn and purchase, like Dungeon Keys for special quests." },
                 { action: () => navigateToAppScreen('shop'), element: '#tutorial-shop-balance', text: "Use Gold earned from quests in the Shop to buy powerful items and boosts." },
                 { action: () => navigateToAppScreen('journal'), element: '#tutorial-journal', text: "Finally, the Journal rewards reflection. Write about your day to earn extra XP and Gold, and maybe even find a surprise." },
+                { action: () => navigateToAppScreen('collection'), element: '#tutorial-collection', text: "This is your Collection, a hall for the rare trophies and artifacts you find. Discover them all to prove your legacy." },
                 { action: () => navigateToAppScreen('profile'), text: "Your orientation is complete. The system is yours. Begin your ascent." }
             ];
 
@@ -1359,18 +1609,15 @@
                             highlightedElement.classList.add('tutorial-highlight');
                             const rect = highlightedElement.getBoundingClientRect();
                             
-                            // Default position: below
                             tutorialBox.style.top = `${rect.bottom + 15}px`;
                             tutorialBox.style.left = `50%`;
                             tutorialBox.style.transform = `translateX(-50%)`;
 
-                             // Check if tooltip goes off-screen vertically and reposition to top if needed
                             const boxRect = tutorialBox.getBoundingClientRect();
                             if (boxRect.bottom > window.innerHeight - 20) {
                                 tutorialBox.style.top = `${rect.top - boxRect.height - 15}px`;
                             }
 
-                            // Horizontal adjustments
                             const finalBoxRect = tutorialBox.getBoundingClientRect();
                             if (finalBoxRect.left < 10) {
                                 tutorialBox.style.left = '10px';
@@ -1394,7 +1641,7 @@
 
                 if (step.action) {
                     step.action();
-                    setTimeout(performStep, 400); // Wait for screen transition
+                    setTimeout(performStep, 400);
                 } else {
                     performStep();
                 }
@@ -1417,4 +1664,5 @@
     </script>
 </body>
 </html>
+
 
