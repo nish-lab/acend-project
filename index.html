@@ -1250,9 +1250,25 @@
                 let requiresRerender = true;
 
                 if (itemId === 'dungeon_key') {
-                    // ... (existing code)
+                    if (state.player.activeDungeonQuest) {
+                        await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Quest Active</h2><p class="text-xl mb-6">You already have an active dungeon quest.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
+                        requiresRerender = false;
+                    } else {
+                        state.player.inventory.dungeon_key--;
+                        if (state.player.inventory.dungeon_key <= 0) delete state.player.inventory.dungeon_key;
+                        state.player.activeDungeonQuest = generateDungeonQuest();
+                        await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">New Quest!</h2><p class="text-xl">A new dungeon quest has been added. Check the Quests tab.</p>`, 2500);
+                    }
                 } else if (itemId === 'xp_boost') {
-                    // ... (existing code)
+                    if (state.player.activeEffects.xpBoost) {
+                        await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Already Active</h2><p class="text-xl mb-6">An XP Boost is already active.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`);
+                        requiresRerender = false;
+                    } else {
+                        state.player.inventory.xp_boost--;
+                        if (state.player.inventory.xp_boost <= 0) delete state.player.inventory.xp_boost;
+                        state.player.activeEffects.xpBoost = true;
+                        await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4">XP Boost Activated!</h2><p class="text-xl">Your next XP reward will be doubled.</p>`, 2500);
+                    }
                 } else if (itemId === 'stamina_potion') {
                     state.player.inventory.stamina_potion--;
                     if (state.player.inventory.stamina_potion <= 0) delete state.player.inventory.stamina_potion;
