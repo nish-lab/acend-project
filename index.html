@@ -22,7 +22,7 @@
         }
 
         @keyframes bgPulse {
-            0%   { background: radial-gradient(circle at center, rgba(18,28,48,1) 0%, rgba(10,20,38,1) 100%); }
+            0%   { background: radial-gradient(circle at center, rgba(32,54,92,1) 0%, rgba(5, 10, 20,1)100%); }
             100% { background: radial-gradient(circle at center, rgba(32,54,92,1) 0%, rgba(5,10,20,1) 100%); }
         }
 
@@ -369,6 +369,7 @@
                 <a href="#collection" class="nav-item text-center"><i class="fa-solid fa-gem text-2xl"></i><span class="text-xs block">Collection</span></a>
                 <a href="#journal" class="nav-item text-center"><i class="fa-solid fa-book-open text-2xl"></i><span class="text-xs block">Journal</span></a>
                 <a href="#shop" class="nav-item text-center"><i class="fa-solid fa-store text-2xl"></i><span class="text-xs block">Shop</span></a>
+                <a href="#settings" class="nav-item text-center"><i class="fa-solid fa-gear text-2xl"></i><span class="text-xs block">Settings</span></a>
             </div>
         </div>
     </div>
@@ -376,13 +377,39 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- STATE & CONFIG ---
+            
             let state = { 
-                currentPage: 'loading',
-                currentAppScreen: 'profile',
-                currentQuestTab: 'weekly',
-                onboardingStep: 0, 
-                player: null
-            };
+            currentPage: 'loading',
+            currentAppScreen: 'profile',
+            currentQuestTab: 'weekly',
+            onboardingStep: 0, 
+            player: null,
+            currentUserEmail: null
+        };
+
+        // --- AUTO-SAVE CURRENT PLAYER ---
+// Save the current logged-in player's state every 5 seconds
+setInterval(() => {
+    if (state.player && state.currentUserEmail) {
+        saveCurrentPlayer();
+    }
+}, 5000);
+
+// Also save right before the tab closes/reloads
+window.addEventListener('beforeunload', () => {
+    if (state.player && state.currentUserEmail) {
+        saveCurrentPlayer();
+    }
+});
+
+// One-time cleanup: remove old single-player save from older versions
+try {
+    localStorage.removeItem('ascend_player_v1');
+} catch (e) {
+    console.warn('Failed to clear legacy save', e);
+}
+
+
             const pages = { 
                 loading: document.getElementById('page-loading'),
                 intro: document.getElementById('page-intro'),
@@ -394,6 +421,78 @@
             const appScreenContainer = pages.app.querySelector('.page-content');
             const popupBox = document.getElementById('popup-box');
             const appBody = document.getElementById('app-body');
+
+            // --- LOCAL STORAGE KEYS ---
+const USERS_KEY = 'ascend_users_v1';
+const CURRENT_USER_KEY = 'ascend_current_user_v1';
+
+// users structure in localStorage:
+// {
+//   "email@example.com": {
+//       password: "plain-password-or-hash",
+//       player: { ...full player state... }
+//   },
+//   ...
+// }
+
+function loadUsers() {
+    try {
+        const raw = localStorage.getItem(USERS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+        console.warn('Failed to load users', e);
+        return {};
+    }
+}
+
+function saveUsers(users) {
+    try {
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    } catch (e) {
+        console.warn('Failed to save users', e);
+    }
+}
+
+function setCurrentUserEmail(email) {
+    state.currentUserEmail = email;
+    try {
+        if (email) {
+            localStorage.setItem(CURRENT_USER_KEY, email);
+        } else {
+            localStorage.removeItem(CURRENT_USER_KEY);
+        }
+    } catch (e) {
+        console.warn('Failed to persist current user', e);
+    }
+}
+
+function loadPlayerForEmail(email) {
+    const users = loadUsers();
+    const user = users[email];
+    return user && user.player ? user.player : null;
+}
+
+function saveCurrentPlayer() {
+    if (!state.currentUserEmail || !state.player) return;
+    const users = loadUsers();
+    const existing = users[state.currentUserEmail] || { password: null };
+    users[state.currentUserEmail] = {
+        ...existing,
+        player: state.player
+    };
+    saveUsers(users);
+}
+
+function deleteUser(email) {
+    const users = loadUsers();
+    if (users[email]) {
+        delete users[email];
+        saveUsers(users);
+    }
+}
+
             
             // --- TEMPLATES & GAME DATA ---
             const titles = {
@@ -561,35 +660,73 @@
             }
             
             function renderAppScreen() {
-                const contentContainer = appScreenContainer;
-                contentContainer.classList.add('fade-out');
+    const contentContainer = appScreenContainer;
 
-                setTimeout(() => {
-                    let content = '';
-                    if (state.currentAppScreen === 'profile') content = getProfileHTML();
-                    if (state.currentAppScreen === 'shop') content = getShopHTML();
-                    if (state.currentAppScreen === 'inventory') content = getInventoryHTML();
-                    if (state.currentAppScreen === 'quests') content = getQuestsHTML();
-                    if (state.currentAppScreen === 'journal') content = getJournalHTML();
-                    if (state.currentAppScreen === 'collection') content = getCollectionHTML();
-                    contentContainer.innerHTML = content;
-                    
-                    if (state.currentAppScreen === 'profile') {
-                        updateDashboardUI();
-                    } else if (state.currentAppScreen === 'shop') {
-                        updateShopUI();
-                    } else if (state.currentAppScreen === 'inventory') {
-                        updateInventoryUI();
-                    } else if (state.currentAppScreen === 'quests') {
-                        updateQuestsUI();
-                    } else if (state.currentAppScreen === 'journal') {
-                        updateJournalUI();
-                    } else if (state.currentAppScreen === 'collection') {
-                        updateCollectionUI();
-                    }
-                    contentContainer.classList.remove('fade-out');
-                }, 300);
-            }
+    // Start fade-out
+    contentContainer.classList.add('fade-out');
+
+    setTimeout(() => {
+        let content = '';
+
+        // Choose which screen to render
+        switch (state.currentAppScreen) {
+            case 'profile':
+                content = getProfileHTML();
+                break;
+            case 'shop':
+                content = getShopHTML();
+                break;
+            case 'inventory':
+                content = getInventoryHTML();
+                break;
+            case 'quests':
+                content = getQuestsHTML();
+                break;
+            case 'journal':
+                content = getJournalHTML();
+                break;
+            case 'collection':
+                content = getCollectionHTML();
+                break;
+            case 'settings':
+                content = getSettingsHTML();
+                break;
+        }
+
+        // Inject HTML
+        contentContainer.innerHTML = content;
+
+        // Run page-specific setup
+        switch (state.currentAppScreen) {
+            case 'profile':
+                updateDashboardUI();
+                break;
+            case 'shop':
+                updateShopUI();
+                break;
+            case 'inventory':
+                updateInventoryUI();
+                break;
+            case 'quests':
+                updateQuestsUI();
+                break;
+            case 'journal':
+                updateJournalUI();
+                break;
+            case 'collection':
+                updateCollectionUI();
+                break;
+            case 'settings':
+                updateSettingsUI();
+                break;
+        }
+
+        // IMPORTANT: remove fade-out so the content becomes visible again
+        contentContainer.classList.remove('fade-out');
+    }, 200); // delay just to let the fade animation feel smooth
+}
+
+
             
             function getProfileHTML() {
                 return `<div class="w-full max-w-lg mx-auto space-y-6">
@@ -753,6 +890,159 @@
                     <div id="tutorial-collection" class="collection-grid">${itemsHTML}</div>
                 </div>`;
             }
+
+            function getSettingsHTML() {
+    const player = state.player;
+    const email = state.currentUserEmail || 'Unknown';
+
+    return `
+        <div class="space-y-4">
+            <div class="status-header text-lg">SYSTEM SETTINGS</div>
+
+            <!-- Account summary -->
+            <div class="box-bg rounded-lg p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-gray-400">Account</p>
+                    <p class="text-lg font-semibold">${player.name}</p>
+                    <p class="text-sm text-gray-400">${email}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs uppercase text-gray-400 mb-1">Class</p>
+                    <p class="font-semibold">${player.class}</p>
+                    <p class="text-xs text-gray-400">Lv ${player.level}</p>
+                </div>
+            </div>
+
+            <!-- Appearance -->
+            <div class="box-bg rounded-lg p-4 space-y-3">
+                <h3 class="font-garamond text-xl text-glow-subtle mb-1">Appearance</h3>
+                <label class="block text-sm mb-1">Theme</label>
+                <select id="settings-theme" class="form-input w-full p-2 rounded-sm">
+                    <option value="default">Default</option>
+                    <option value="monarch">Monarch (Purple)</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">
+                    Themes change how the system looks on this device only.
+                </p>
+            </div>
+
+            <!-- Data controls -->
+            <div class="box-bg rounded-lg p-4 space-y-3">
+                <h3 class="font-garamond text-xl text-glow-subtle mb-1">Data</h3>
+                <button id="settings-reset-progress" class="btn-system w-full font-bold py-2 rounded-sm text-sm">
+                    Reset this character&apos;s progress
+                </button>
+                <button id="settings-delete-account" class="btn-sell w-full font-bold py-2 rounded-sm text-sm mt-2">
+                    Delete this account from this device
+                </button>
+            </div>
+
+            <!-- Logout -->
+            <div class="box-bg rounded-lg p-4">
+                <button id="settings-logout" class="btn-system w-full font-bold py-3 rounded-sm text-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+
+            function updateSettingsUI() {
+    // Theme selector
+    const themeSelect = document.getElementById('settings-theme');
+    if (themeSelect) {
+        themeSelect.value = state.player.theme || 'default';
+        themeSelect.addEventListener('change', () => {
+            state.player.theme = themeSelect.value;
+            applyTheme();
+            saveCurrentPlayer();
+        });
+    }
+
+    // Reset progress (keeps email/password, but wipes character)
+    const resetBtn = document.getElementById('settings-reset-progress');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            const onConfirm = () => {
+                state.player = createNewPlayerState();
+                applyTheme();
+                saveCurrentPlayer();
+                showAutoPopup(
+                    `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Progress Reset</h2>
+                     <p class="text-xl mb-2">Your character has been reset.</p>`,
+                    2000
+                ).then(() => {
+                    switchPage('app');
+                    renderAppScreen();
+                });
+            };
+
+            showModal(
+                `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Reset Progress?</h2>
+                 <p class="text-xl mb-6">This will reset this character's level, stats and inventory on this device.</p>
+                 <div class="flex justify-center space-x-4">
+                    <button id="popup-close" class="btn-system font-bold py-2 px-8 rounded-sm">Cancel</button>
+                    <button id="popup-confirm" class="btn-sell font-bold py-2 px-8 rounded-sm">Reset</button>
+                 </div>`,
+                onConfirm
+            );
+        });
+    }
+
+    // Delete account from this device
+    const deleteBtn = document.getElementById('settings-delete-account');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            const onConfirm = () => {
+                const email = state.currentUserEmail;
+                if (email) {
+                    deleteUser(email);
+                }
+                state.player = null;
+                setCurrentUserEmail(null);
+                switchPage('login');
+            };
+
+            showModal(
+                `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Delete Account?</h2>
+                 <p class="text-xl mb-6">This removes this email and all progress from <b>this browser only</b>.</p>
+                 <div class="flex justify-center space-x-4">
+                    <button id="popup-close" class="btn-system font-bold py-2 px-8 rounded-sm">Cancel</button>
+                    <button id="popup-confirm" class="btn-sell font-bold py-2 px-8 rounded-sm">Delete</button>
+                 </div>`,
+                onConfirm
+            );
+        });
+    }
+
+    // Logout: keep account data, just go back to login
+    const logoutBtn = document.getElementById('settings-logout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            const onConfirm = () => {
+                state.player = null;
+                setCurrentUserEmail(null);
+                // Clear fields for cleanliness
+                document.getElementById('login-password').value = '';
+                switchPage('login');
+            };
+
+            showModal(
+                `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">Log Out?</h2>
+                 <p class="text-xl mb-6">You can log back in with the same email and password to continue.</p>
+                 <div class="flex justify-center space-x-4">
+                    <button id="popup-close" class="btn-system font-bold py-2 px-8 rounded-sm">Cancel</button>
+                    <button id="popup-confirm" class="btn-system font-bold py-2 px-8 rounded-sm">Log Out</button>
+                 </div>`,
+                onConfirm
+            );
+        });
+    }
+}
+
+
 
             function updateDashboardUI() {
                 const p = state.player;
@@ -1189,12 +1479,20 @@
             }
             
             async function initializeApp() {
-                state.player = createNewPlayerState();
-                applyTheme();
-                await showPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-exclamation-circle mr-2"></i>Alert</h2><p class="text-xl mb-8 font-semibold text-white">[ Welcome, player. ]</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg">OK</button>`);
-                switchPage('onboarding');
-                renderOnboardingStep();
-            }
+    state.player = createNewPlayerState();
+    applyTheme();
+
+    await showAutoPopup(
+        `<h2 class="font-garamond text-2xl text-glow-subtle mb-4">New Player Registered</h2>
+         <p class="text-xl mb-2">Welcome to the Ascend system.</p>`,
+        2000
+    );
+
+    state.onboardingStep = 0;
+    switchPage('onboarding');
+    renderOnboardingStep();
+}
+
 
             function renderOnboardingStep() {
                 const step = onboardingSteps[state.onboardingStep];
@@ -1220,30 +1518,91 @@
             }
 
             async function handleLoginAttempt() {
-                const email = document.getElementById('login-email').value.trim();
-                const password = document.getElementById('login-password').value.trim();
-                if (!email || !password) {
-                    const errorPopupContent = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-exclamation-triangle mr-2"></i>Incomplete</h2><p class="text-xl mb-6">Please enter both email and password.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
-                    await showPopup(errorPopupContent);
-                    switchPage('login');
-                } else {
-                    initializeApp();
-                }
-            }
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value.trim();
 
-            async function handleSignupAttempt() {
-                const email = document.getElementById('signup-email').value.trim();
-                const password = document.getElementById('signup-password').value.trim();
-                if (!email || !password) {
-                    const errorPopupContent = `<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-exclamation-triangle mr-2"></i>Incomplete</h2><p class="text-xl mb-6">Please enter both email and password.</p><button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
-                    await showPopup(errorPopupContent);
-                    switchPage('login');
-                    document.getElementById('login-form').classList.add('hidden');
-                    document.getElementById('signup-form').classList.remove('hidden');
-                } else {
-                    initializeApp();
-                }
-            }
+    if (!email || !password) {
+        const errorPopupContent = `
+            <h2 class="font-garamond text-2xl text-glow-subtle mb-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Incomplete
+            </h2>
+            <p class="text-xl mb-6">Please enter both email and password.</p>
+            <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+        await showPopup(errorPopupContent);
+        switchPage('login');
+        return;
+    }
+
+    const users = loadUsers();
+    const user = users[email];
+
+    if (!user || user.password !== password) {
+        const errorPopupContent = `
+            <h2 class="font-garamond text-2xl text-glow-subtle mb-4">
+                <i class="fas fa-circle-exclamation mr-2"></i>Access Denied
+            </h2>
+            <p class="text-xl mb-6">Email or password is incorrect, or this account was never created on this device.</p>
+            <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+        await showPopup(errorPopupContent);
+        switchPage('login');
+        return;
+    }
+
+    // Valid credentials
+    setCurrentUserEmail(email);
+
+    const savedPlayer = user.player;
+    if (!savedPlayer) {
+        // Account exists but no character yet – run onboarding
+        await initializeApp();
+    } else {
+        state.player = savedPlayer;
+        applyTheme();
+        switchPage('app');
+        renderAppScreen();
+    }
+}
+
+async function handleSignupAttempt() {
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value.trim();
+
+    if (!email || !password) {
+        const errorPopupContent = `
+            <h2 class="font-garamond text-2xl text-glow-subtle mb-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Incomplete
+            </h2>
+            <p class="text-xl mb-6">Please enter both email and password.</p>
+            <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+        await showPopup(errorPopupContent);
+        switchPage('login');
+        document.getElementById('login-form').classList.add('hidden');
+        document.getElementById('signup-form').classList.remove('hidden');
+        return;
+    }
+
+    const users = loadUsers();
+    if (users[email]) {
+        const errorPopupContent = `
+            <h2 class="font-garamond text-2xl text-glow-subtle mb-4">
+                <i class="fas fa-circle-exclamation mr-2"></i>Already Exists
+            </h2>
+            <p class="text-xl mb-6">An account with this email already exists on this device. Try logging in instead.</p>
+            <button id="popup-ok" class="btn-system font-bold py-2 px-12 rounded-sm text-lg mt-6">OK</button>`;
+        await showPopup(errorPopupContent);
+        switchPage('login');
+        return;
+    }
+
+    // Create new user shell with password (NOTE: for real production you'd hash this)
+    users[email] = { password, player: null };
+    saveUsers(users);
+    setCurrentUserEmail(email);
+
+    // Start onboarding for this new user
+    await initializeApp();
+}
+
             
             async function handleUseItem(e) {
                 const itemId = e.currentTarget.dataset.itemId;
@@ -1502,23 +1861,30 @@
                 }
 
                 if (state.onboardingStep === 0) {
-                    state.player.name = document.getElementById('name').value.trim();
-                } else if (state.onboardingStep === 2) {
-                    Object.keys(state.player.baseline).forEach(key => {
-                        const input = document.getElementById(key);
-                        if(input) {
-                            state.player.baseline[key] = parseFloat(input.value) || 0;
-                        }
-                    });
+    state.player.name = document.getElementById('name').value.trim();
+} else if (state.onboardingStep === 2) {
+    Object.keys(state.player.baseline).forEach(key => {
+        const input = document.getElementById(key);
+        if (input) {
+            state.player.baseline[key] = parseFloat(input.value) || 0;
+        }
+    });
 
-                    await showAutoPopup(`<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-scroll mr-2"></i>Notice</h2><p class="text-xl mb-8 font-semibold text-white">[ A Daily Quest has arrived. ]</p>`, 2500);
-                    switchPage('app');
-                    renderAppScreen();
-                    
-                    if (!state.player.hasCompletedTutorial) {
-                        setTimeout(startTutorial, 500);
-                    }
-                } 
+    // SAVE finished onboarding data for this user
+    saveCurrentPlayer();
+
+    await showAutoPopup(
+        `<h2 class="font-garamond text-2xl text-glow-subtle mb-4"><i class="fas fa-scroll mr-2"></i>Notice</h2><p class="text-xl mb-8 font-semibold text-white">[ A Daily Quest has arrived. ]</p>`,
+        2500
+    );
+    switchPage('app');
+    renderAppScreen();
+
+    if (!state.player.hasCompletedTutorial) {
+        setTimeout(startTutorial, 500);
+    }
+}
+
                 
                 if (state.onboardingStep < 2) {
                     state.onboardingStep++;
@@ -1563,14 +1929,45 @@
                 });
             });
 
-            // --- Initial Loading Logic ---
-            setTimeout(() => {
-                switchPage('intro');
-            }, 3000);
+                // --- Initial Loading Logic ---
 
-            document.getElementById('accept-button').addEventListener('click', () => {
-                switchPage('login');
-            });
+                function startIntroFlow() {
+    // loading → intro after a short delay
+    setTimeout(() => {
+        switchPage('intro');
+    }, 3000);
+
+    // ACCEPT → go to login
+    const acceptBtn = document.getElementById('accept-button');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', () => {
+            switchPage('login');
+        });
+    }
+}
+
+// Try to auto-login the last user *only if* they are still marked as current
+const currentEmail = localStorage.getItem(CURRENT_USER_KEY);
+
+if (currentEmail) {
+    const existingPlayer = loadPlayerForEmail(currentEmail);
+
+    if (existingPlayer) {
+        // User didn't log out: restore their character and go straight to app
+        setCurrentUserEmail(currentEmail);
+        state.player = existingPlayer;
+        applyTheme();
+        switchPage('app');
+        renderAppScreen();
+    } else {
+        // We know the email, but there's no character yet – just show intro/login
+        startIntroFlow();
+    }
+} else {
+    // No "current user" saved (because they logged out or deleted) → show intro/login
+    startIntroFlow();
+}
+
 
             // --- TUTORIAL LOGIC ---
             const tutorialOverlay = document.getElementById('tutorial-overlay');
@@ -1675,6 +2072,20 @@
                 tutorialStep++;
                 showTutorialStep();
             });
+
+            // Auto-save player every 5s while logged in
+setInterval(() => {
+    if (state.player && state.currentUserEmail) {
+        saveCurrentPlayer();
+    }
+}, 5000);
+
+window.addEventListener('beforeunload', () => {
+    if (state.player && state.currentUserEmail) {
+        saveCurrentPlayer();
+    }
+});
+
 
         });
     </script>
